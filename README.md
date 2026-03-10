@@ -79,13 +79,50 @@ helm upgrade --install molecular-audit-core ./manifest/chart \
   -f ./examples/values-gcs.yaml \
   --set storage.gcs.bucket=YOUR_BUCKET \
   --set workloadIdentity.gcpServiceAccount=your-sa@project.iam.gserviceaccount.com \
-  --set image.repository=us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/molecular-audit-core \
-  --set image.tag=1.0.0 \
+  --set image.repository=us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit \
+  --set image.tag=2026.03.10-v0.3 \
   --set console.image.repository=us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/molecular-audit-core/console \
-  --set console.image.tag=1.0.0 \
+  --set console.image.tag=2026.03.10-v0.3 \
   --set config.projectId=YOUR_PROJECT_ID
 ```
 <br/>
+
+Or run with Makefile
+```bash
+## Standard
+
+```bash
+
+export WORKLOAD_IDENTITY_GSA="your-sa@project.iam.gserviceaccount.com"
+export PROJECT_ID="test"
+export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
+
+# Bare digest only. The standard target selects the standard public repository automatically.
+export IMAGE_DIGEST="sha256:aba9fa19c286a87e9d406dcd74f69d998f041a9aaf7d5c9023c1058195752356"
+
+make deploy-manifest-infra-standard IMAGE_DIGEST="${IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make stage-manifest-input-standard PROJECT_ID="${PROJECT_ID}" IMAGE_DIGEST="${IMAGE_DIGEST}"
+make deploy-manifest-job-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" IMAGE_DIGEST="${IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make fetch-manifest-output-standard IMAGE_DIGEST="${IMAGE_DIGEST}"
+```
+
+## Deep
+
+```bash
+
+export WORKLOAD_IDENTITY_GSA="your-sa@project.iam.gserviceaccount.com"
+
+export PROJECT_ID="test"
+export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
+
+# Bare digest only. The deep target selects the deep public repository automatically.
+export IMAGE_DIGEST="sha256:a0f32e6184ca2dcdb16c39e642e895add74c1da4bd3455d9a39b4a801e504f37"
+
+make deploy-manifest-infra-deep IMAGE_DIGEST="${IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make stage-manifest-input-deep PROJECT_ID="${PROJECT_ID}" IMAGE_DIGEST="${IMAGE_DIGEST}"
+make deploy-manifest-job-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" IMAGE_DIGEST="${IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make fetch-manifest-output-deep IMAGE_DIGEST="${IMAGE_DIGEST}"
+```
 
 
 For the full runbook and verification flow, see `docs/RUNBOOK_CUSTOMER.md`.
@@ -138,6 +175,7 @@ Deployment bundle provided here contains configuration and public artifacts only
 For full product information, methodology, and security documentation:
 
 👉 https://www.glassbox-bio.com
+
 
 
 
