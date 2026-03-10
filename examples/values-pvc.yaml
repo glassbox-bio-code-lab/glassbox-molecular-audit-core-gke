@@ -1,5 +1,0 @@
-storage:
-  type: pvc
-  pvc:
-    storageClassName: standard
-    size: 50Gi
