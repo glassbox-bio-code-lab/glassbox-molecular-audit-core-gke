@@ -1,6 +1,0 @@
-apiVersion: v2
-name: molecular-audit-core
-description: Glassbox Bio Molecular Audit deterministic validation job
-type: application
-version: 0.1.0
-appVersion: "1.0.0"
