@@ -1,0 +1,177 @@
+# Phase 5 (computational) runner image rebuilt to match image_inspect.json.
+# Uses Miniconda base (PATH includes /opt/conda) and Ubuntu 22.04 userspace.
+
+# Pin the Miniconda base to avoid accidental Python version drift (breaks binary wheels).
+ARG BASE_IMAGE=continuumio/miniconda3:24.7.1-0
+FROM ${BASE_IMAGE} AS runner
+
+ARG MP_SERVICE_NAME=services/REPLACE_ME_SERVICE_NAME
+LABEL com.googleapis.cloudmarketplace.product.service.name=${MP_SERVICE_NAME}
+
+USER root
+
+# System libs (aligned to Phase 5 service image).
+RUN apt-get update && \
+    apt-mark hold libibverbs1 libibverbs-dev 2>/dev/null || true && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    --allow-change-held-packages \
+    --fix-broken \
+    libxrender1 \
+    libxext6 \
+    libgl1 \
+    git \
+    ca-certificates \
+    libglib2.0-0 \
+    libasound2-dev \
+    build-essential \
+    cmake \
+    bash \
+    curl \
+    bzip2 \
+    openbabel && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ensure "python3"/"pip3" resolve to the Miniconda interpreter so packages installed
+# via pip are available at runtime (k8s job invokes `python3 -m app.gbx_core_runner_v3`).
+#
+# Use /usr/local/bin so it wins over any system python on PATH.
+RUN ln -sf /opt/conda/bin/python /usr/local/bin/python3 && \
+    ln -sf /opt/conda/bin/pip /usr/local/bin/pip3
+#
+# Also pin /usr/bin/python3 in case a runtime shell resolves it there (some base images
+# or entrypoints prepend /usr/bin). Ignore if /usr/bin isn't writable for any reason.
+RUN ln -sf /opt/conda/bin/python /usr/bin/python3 2>/dev/null || true
+
+ENV TORCH_VERSION=2.5.1 \
+    TORCHVISION_VERSION=0.20.1 \
+    TORCHAUDIO_VERSION=2.5.1 \
+    MAMBA_ROOT_PREFIX=/opt/conda \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH="/app:/app/app" \
+    ADMET_PIPELINE_MODEL_DIR="/app/models/admet_v3" \
+    GBX_DATA_ROOT="/app/app/data/target_biology_risk" \
+    OFFTARGET_PANELS="/app/app/data" \
+    TN_SYNC_MODELS="0"
+
+RUN pip install --upgrade pip setuptools wheel
+
+
+# Heavy compute deps (kept explicit to avoid accidental removals).
+#
+# IMPORTANT: Many binary wheels in this stack (notably some torch/pyg deps) are
+# still built against NumPy 1.x and will crash at runtime with NumPy 2.x.
+# Pin NumPy <2 until all compiled deps are confirmed NumPy-2 compatible.
+#
+# Use conda here (instead of pip) to avoid rare pip install segfaults seen on
+# some builder environments.
+RUN conda install -y --solver libmamba "numpy<2" && conda clean -afy
+RUN pip install --no-cache-dir rdkit
+RUN pip install --no-cache-dir \
+    torch==${TORCH_VERSION} \
+    torchvision==${TORCHVISION_VERSION} \
+    torchaudio==${TORCHAUDIO_VERSION} \
+    --index-url https://download.pytorch.org/whl/cpu
+# OpenMM removed from standard image; physics binding now uses OpenBabel path.
+
+# Docking backend: provide Vina so deep runs can execute molecular docking even if QuickVina-W
+# isn't available.
+RUN conda install -y --solver libmamba -c conda-forge vina && conda clean -a -y
+RUN pip install --no-cache-dir torch_geometric
+RUN pip install --no-cache-dir \
+    pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv \
+    -f https://data.pyg.org/whl/torch-2.5.0+cpu.html
+
+
+# Python deps (start from existing pipeline list; refine once Phase 5-only requirements are curated).
+COPY deploy/requirements-pipeline.txt /requirements-pipeline.txt
+
+# Pre-install cryptography/cffi from wheels before the large requirements install.
+# This reduces pip uninstall/reinstall churn, which has been observed to intermittently segfault
+# in some builder environments.
+RUN pip install --no-cache-dir --upgrade --only-binary=:all: cryptography cffi
+RUN pip install --no-cache-dir -r /requirements-pipeline.txt
+RUN pip install --no-cache-dir google-cloud-storage google-auth
+RUN pip install --no-cache-dir Jinja2
+
+# Hard fail the build if the runtime interpreter can't import key deps.
+RUN python3 -c "import sys; import numpy, pandas, dimorphite_dl; print('python=',sys.version); print('numpy=',numpy.__version__); print('pandas=',pandas.__version__); print('dimorphite_dl=ok')"
+
+# Docking engines:
+# QuickVina-W (preferred backend by the orchestrator when present).
+RUN apt-get update -o Acquire::http::Timeout=30 -o Acquire::ftp::Timeout=30 && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    libboost-dev \
+    libboost-system-dev \
+    libboost-filesystem-dev \
+    libboost-thread-dev \
+    libboost-program-options-dev \
+    libboost-regex-dev \
+    libboost-iostreams-dev \
+    libboost-serialization-dev \
+    xutils-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN cd /tmp && \
+    git clone --depth 1 --branch qvina-w https://github.com/QVina/qvina.git && \
+    cd qvina && \
+    make -j$(nproc) && \
+    cp qvina-w /usr/local/bin/qvina-w && \
+    chmod +x /usr/local/bin/qvina-w && \
+    cd / && \
+    rm -rf /tmp/qvina
+
+
+
+WORKDIR /app
+
+COPY modules /app/app
+COPY app/evidence /app/app/evidence
+RUN ln -sfn /app/app /app/modules
+# Model and dataset artifacts are kept out of git, but must be baked into the image
+# for full functionality in production/Marketplace runs.
+# Keep models in a stable top-level path and symlink it into the app tree for any
+# legacy code paths that expect /app/app/models.
+COPY deploy/models /app/models
+RUN ln -sfn /app/models /app/app/models
+COPY deploy/data /app/app/data
+RUN mkdir -p /app/deploy /app/app/target_modules && \
+    ln -sfn /app/app/data /app/deploy/data && \
+    ln -sfn /app/app/data/target_biology_risk /app/app/target_modules/data && \
+    mkdir -p /opt/glassbox && \
+    ln -sfn /app/app/data/clinical_precedent_data /opt/glassbox/precedent_packs
+
+# Sanity check: ensure BBB model artifacts exist.
+# Accept the approved admet_v3 bundle naming (BBB_MARTINS), the legacy quickstart
+# bbb_head layout, or the older admet_v2 bbb_permeability layout.
+RUN test -d /app/models/admet_v3 && \
+    ( (test -f /app/models/admet_v3/bbb_head/model_lgbm.pkl && test -f /app/models/admet_v3/bbb_head/isotonic.pkl) || \
+      (test -f /app/models/admet_v3/heads/BBB_MARTINS.joblib && test -f /app/models/admet_v3/calibrators/BBB_MARTINS.joblib) || \
+      (test -f /app/models/admet_v3/heads/bbb_permeability.joblib && test -f /app/models/admet_v3/calibrators/bbb_permeability.pkl) )
+
+# Install xTB binary during build (no local artifacts required).
+RUN curl -L -o /tmp/xtb.tar https://github.com/grimme-lab/xtb/releases/download/v6.6.0/xtb-6.6.0-linux-x86_64.tar.xz && \
+    mkdir -p /opt/xtb && \
+    tar -xf /tmp/xtb.tar -C /opt/xtb --strip-components=1 && \
+    rm -f /tmp/xtb.tar && \
+    ln -sf /opt/xtb/bin/xtb /usr/local/bin/xtb
+
+ENV XTB_HOME=/opt/xtb \
+    LD_LIBRARY_PATH=/opt/xtb/lib
+
+# Fail the build if the Phase 5 runner isn't present in the image.
+RUN test -f /app/app/gbx_core_runner_v3.py
+
+# Create non-root user for runtime (UID 1000 matches pod securityContext).
+RUN groupadd -g 1000 appuser && \
+    useradd -u 1000 -g 1000 -m -s /bin/bash appuser && \
+    chown -R 1000:1000 /app
+USER 1000
+
+# Reset the entrypoint to avoid double-python invocation from inherited base images.
+ENTRYPOINT []
+
+# Default command is overridden by k8s job/compose.
+CMD ["bash"]
+
+# -----------------------------------------------------------------------------

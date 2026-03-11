@@ -1,0 +1,97 @@
+services:
+  glassbox-mol-audit-runner:
+    image: ${GBX_RUNNER_IMAGE:-glassbox-mol-audit:latest}
+    build:
+      context: ..
+      dockerfile: ${GBX_RUNNER_DOCKERFILE:-deploy/Dockerfile.gbx.local}
+      args:
+        # Pin Miniconda to avoid upstream 'latest' moving to Python 3.13 (breaks rdkit-pypi wheels).
+        BASE_IMAGE: continuumio/miniconda3:24.7.1-0
+        # Required by Marketplace: OCI image annotation identifying the product service name.
+        MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/REPLACE_ME_SERVICE_NAME}
+        # Optional CUDA-Q install path for GPU Dockerfile (defaults off to keep build stable).
+    env_file:
+      - ./.env.gbx.local
+    environment:
+      HOME: /data/output/_runtime_home
+      TMPDIR: /data/output/_runtime_tmp
+      XDG_CONFIG_HOME: /data/output/_runtime_home/.config
+      MPLCONFIGDIR: /data/output/_runtime_home/.config/matplotlib
+    volumes:
+      - ../projects:/app/projects
+      - ../gbx_input:/data/input
+      - ../gbx_output:/data/output
+      - ../data:/app/data
+    working_dir: /app
+    command:
+      - python3
+      - -m
+      - app.gbx_core_runner_v3
+      - --project-id
+      - ${GBX_PROJECT_ID:-test}
+      - --input-root
+      - /data/input
+      - --output-dir
+      - /data/output
+
+  # Isolated deep-tools runtime (AmberTools/OpenBabel/Vina and optional CUDA-Q).
+  # Use this with: docker compose --profile deep-tools ...
+  glassbox-mol-audit-deep-tools:
+    profiles: ["deep-tools"]
+    image: ${GBX_DEEP_TOOLS_IMAGE:-glassbox-mol-audit-deep-tools:latest}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gbx.deep-tools
+      args:
+        BASE_IMAGE: ${GBX_DEEP_BASE_IMAGE:-glassbox-mol-audit:latest}
+        INSTALL_CUDAQ: ${GBX_DEEP_INSTALL_CUDAQ:-1}
+        MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/REPLACE_ME_SERVICE_NAME}
+    env_file:
+      - ./.env.gbx.local
+    environment:
+      HOME: /data/output/_runtime_home
+      TMPDIR: /data/output/_runtime_tmp
+      XDG_CONFIG_HOME: /data/output/_runtime_home/.config
+      MPLCONFIGDIR: /data/output/_runtime_home/.config/matplotlib
+      TN_MODEL_DIR: /app/deploy/models
+      TN_DATA_DIR: /app/deploy/data
+      GBX_DATA_ROOT: /app/deploy/data
+      GBX_DATA_DIR: /app/deploy/data
+      ADMET_PIPELINE_MODEL_DIR: /app/deploy/models/admet_v3
+      OFFTARGET_PANELS: /app/deploy/data
+      PYTHONPATH: /app:/app/app
+      AMBERHOME: /opt/conda/envs/deep-tools
+      NVIDIA_VISIBLE_DEVICES: ${GBX_DEEP_NVIDIA_VISIBLE_DEVICES:-all}
+      NVIDIA_DRIVER_CAPABILITIES: ${GBX_DEEP_NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+    volumes:
+      - ..:/app
+      - ../gbx_input:/data/input
+      - ../gbx_output:/data/output
+    working_dir: /app
+    command: ["bash", "-lc", "sleep infinity"]
+
+  # Preflight UI + local server (runs inside the user's environment; install is free, runs are billed)
+  glassbox-preflight:
+    image: glassbox-preflight:latest
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gbx.local
+      target: preflight
+      args:
+        MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/REPLACE_ME_SERVICE_NAME}
+    environment:
+      PORT: "8080"
+      K8S_INCLUSTER: "false"
+      K8S_AUTH_DISABLED: "true"
+      GBX_HTTP_BODY_LIMIT: "50mb"
+      GBX_INPUT_ROOT: "/data/input"
+      GBX_OUTPUT_ROOT: "/data/output"
+      GBX_RUNNER_IMAGE: "glassbox-mol-audit:latest"
+    ports:
+      # Bind to the Windows host-side WSL vEthernet IP (override with GBX_HOST_IP if needed).
+      - "${GBX_HOST_IP:-172.26.0.1}:8787:8080"
+    volumes:
+      - ../gbx_input:/data/input
+      - ../gbx_output:/data/output
+      # Optional: allow /api/pipeline/run to create Jobs against a real cluster from inside the container.
+      # - ${USERPROFILE}/.kube:/root/.kube:ro

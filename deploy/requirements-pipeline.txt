@@ -1,0 +1,48 @@
+# Minimal runtime deps for GBTAR pipeline / on-prem container
+# (heavier ML bits come from conda layer: rdkit, torch via base image)
+#
+# IMPORTANT:
+# The runner image pins NumPy to <2 because several compiled deps (notably torch
+# and some scientific wheels) can break when NumPy 2.x is pulled in implicitly.
+# Keep any packages that would otherwise force NumPy>=2 (e.g. pandas 3.x) pinned
+# to compatible ranges.
+numpy<2
+colorlog
+Markdown
+PyYAML
+biopython
+fastapi
+httpx
+loguru
+opencv-python-headless<4.12
+pandas<3
+psutil
+psycopg2-binary
+pyarrow
+python-dotenv
+PyPDF2
+pytesseract
+requests
+scikit-learn==1.5.2
+spacy
+seaborn
+uvicorn
+xgboost
+matplotlib
+bson
+mlflow
+mapie
+Jinja2
+reedsolo
+scipy==1.14.1
+python-dateutil==2.8.2
+tzdata==2025.2
+lightgbm
+networkx
+shap
+dimorphite_dl
+ProDy
+h5py
+tables
+cryptography
+rdkit

@@ -1,0 +1,286 @@
+ARG BASE_IMAGE=glassbox-mol-audit:latest
+FROM ${BASE_IMAGE}
+
+ARG MP_SERVICE_NAME=services/REPLACE_ME_SERVICE_NAME
+LABEL com.googleapis.cloudmarketplace.product.service.name=${MP_SERVICE_NAME}
+
+USER root
+SHELL ["/bin/bash", "-lc"]
+ARG INSTALL_CUDAQ=1
+
+ENV CONDA_DIR=/opt/conda \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    INSTALL_CUDAQ=${INSTALL_CUDAQ} \
+    TORCH_VERSION=2.2.0 \
+    TORCHVISION_VERSION=0.17.0 \
+    TORCHAUDIO_VERSION=2.2.0 \
+    TORCH_CUDA_TAG=cu118
+# Build a clean, isolated deep-tools env.
+# Do NOT clone/mutate base env (that path is unstable and causes solver crashes).
+# Use one conda solve for the deep-tools env so Docker rebuilds do not pay repeated
+# SAT-solver cost for the same package set.
+RUN conda create -y -n deep-tools --solver libmamba -c conda-forge \
+      "python=3.11.10" \
+      pip \
+      "numpy=1.26.4" \
+      "scipy=1.14.1" \
+      "scikit-learn=1.5.2" \
+      "pandas=2.2.*" \
+      "ambertools=23.3" \
+      openbabel \
+      vina \
+      networkx \
+      rdkit
+
+
+
+RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir \
+      torch==${TORCH_VERSION}+${TORCH_CUDA_TAG} \
+      torchvision==${TORCHVISION_VERSION}+${TORCH_CUDA_TAG} \
+      torchaudio==${TORCHAUDIO_VERSION}+${TORCH_CUDA_TAG} \
+      --index-url https://download.pytorch.org/whl/${TORCH_CUDA_TAG}
+
+# PyTorch Geometric and its native extensions (matched to torch + CUDA tag above).
+RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir \
+      pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv \
+      -f https://data.pyg.org/whl/torch-${TORCH_VERSION}+${TORCH_CUDA_TAG}.html
+# torch_geometric with --no-deps still requires xxhash at import time.
+RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir xxhash
+RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir --no-deps torch_geometric
+
+COPY deploy/requirements-pipeline.txt /tmp/requirements-pipeline.txt
+RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir -r /tmp/requirements-pipeline.txt
+
+
+    
+# Keep base interpreter compatible with deep modules that are executed via /usr/local/bin/python3.
+# This avoids Python ABI mismatches from importing py311 wheels in a py312 interpreter.
+RUN conda install -y -n base --solver libmamba -c conda-forge \
+      "ambertools=23.3" \
+      openbabel
+
+# CUDA-Q + PySCF for quantum modules.
+# For CUDA 11.8 runtimes, prefer explicit cu11 distributions; do not fail whole image if unavailable.
+RUN if [[ "${INSTALL_CUDAQ}" == "1" ]]; then \
+      conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir --upgrade "pip>=24.0" && \
+      conda run --no-capture-output -n deep-tools python -m pip uninstall -y \
+        cudaq cuda-quantum cuda-quantum-cu11 cuda-quantum-cu12 cuda-quantum-cu13 \
+        cudaq-quantum-cu11 cudaq-quantum-cu12 cudaq-quantum-cu13 || true && \
+      ( \
+        conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir cudaq-quantum-cu11 pyscf || \
+        conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir cuda-quantum-cu11 pyscf || \
+        conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir cudaq pyscf \
+      ) || echo "WARNING: CUDA-Q install failed; continuing without CUDA-Q in deep-tools image"; \
+      /opt/conda/bin/python -m pip install --no-cache-dir --upgrade "pip>=24.0" && \
+      /opt/conda/bin/python -m pip uninstall -y \
+        cudaq cuda-quantum cuda-quantum-cu11 cuda-quantum-cu12 cuda-quantum-cu13 \
+        cudaq-quantum-cu11 cudaq-quantum-cu12 cudaq-quantum-cu13 || true && \
+      ( \
+        /opt/conda/bin/python -m pip install --no-cache-dir cudaq-quantum-cu11 pyscf || \
+        /opt/conda/bin/python -m pip install --no-cache-dir cuda-quantum-cu11 pyscf || \
+        /opt/conda/bin/python -m pip install --no-cache-dir cudaq pyscf \
+      ) || echo "WARNING: CUDA-Q install failed in base interpreter; continuing"; \
+    fi
+
+
+RUN cd /tmp && \
+    git clone --depth 1 --branch qvina-w https://github.com/QVina/qvina.git && \
+    cd qvina && \
+    make -j$(nproc) && \
+    cp qvina-w /usr/local/bin/qvina-w && \
+    chmod +x /usr/local/bin/qvina-w && \
+    cd / && \
+    rm -rf /tmp/qvina
+
+
+# Normalize Amber/RISM data into the deep-tools env so runtime code can rely on
+# stable, standard paths even if conda packages place assets elsewhere.
+RUN conda run --no-capture-output -n deep-tools python - <<'PY'
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+amberhome = Path("/opt/conda/envs/deep-tools").resolve()
+xvv_dir = amberhome / "dat" / "rism"
+mdl_dir = amberhome / "dat" / "rism1d" / "mdl"
+xvv_dir.mkdir(parents=True, exist_ok=True)
+mdl_dir.mkdir(parents=True, exist_ok=True)
+
+roots = [
+    amberhome,
+    Path("/opt/conda"),
+    Path("/opt/conda/pkgs"),
+    Path("/usr/local/amber"),
+]
+
+preferred_xvv_tokens = ("tip3p", "spce", "water", "tip4p")
+preferred_mdl_tokens = ("spce", "tip3p", "tip4p", "water")
+
+def rank(path: Path, tokens: tuple[str, ...]) -> tuple[int, int, int, str]:
+    low = path.name.lower()
+    path_low = str(path).lower()
+    token_score = max((len(tokens) - i for i, token in enumerate(tokens) if token in low), default=0)
+    rism_score = 1 if "rism" in path_low else 0
+    env_score = 1 if str(amberhome).lower() in path_low else 0
+    return (token_score, rism_score, env_score, path_low)
+
+def discover(suffix: str, tokens: tuple[str, ...]) -> list[Path]:
+    found: dict[str, Path] = {}
+    for root in roots:
+        if not root.exists():
+            continue
+        for candidate in root.rglob(f"*{suffix}"):
+            if candidate.is_file():
+                found[str(candidate.resolve())] = candidate.resolve()
+    return sorted(found.values(), key=lambda p: rank(p, tokens), reverse=True)
+
+def copy_unique(candidates: list[Path], target_dir: Path, limit: int) -> list[Path]:
+    copied: list[Path] = []
+    seen_names: set[str] = set()
+    for candidate in candidates:
+        name = candidate.name
+        if name in seen_names:
+            continue
+        seen_names.add(name)
+        destination = target_dir / name
+        if destination.resolve() != candidate.resolve():
+            shutil.copy2(candidate, destination)
+        copied.append(destination)
+        if len(copied) >= limit:
+            break
+    return copied
+
+xvv_candidates = discover(".xvv", preferred_xvv_tokens)
+mdl_candidates = discover(".mdl", preferred_mdl_tokens)
+copy_unique(xvv_candidates, xvv_dir, limit=8)
+copied_models = copy_unique(mdl_candidates, mdl_dir, limit=12)
+
+existing_xvv = sorted(p for p in xvv_dir.glob("*.xvv") if p.is_file() and p.stat().st_size > 0)
+if not existing_xvv and copied_models:
+    rism1d = shutil.which("rism1d")
+    if rism1d:
+        selected_model = copied_models[0]
+        work_dir = amberhome / "dat" / "rism1d"
+        work_dir.mkdir(parents=True, exist_ok=True)
+        stem = work_dir / "generated_water"
+        input_path = stem.with_suffix(".inp")
+        input_path.write_text(
+            "\n".join(
+                [
+                    "&PARAMETERS",
+                    "  OUTLIST='x', THEORY='DRISM', CLOSURE='KH',",
+                    "  NR=16384, DR=0.025,",
+                    "  MDIIS_NVEC=20, MDIIS_DEL=0.3, TOLERANCE=1.e-10,",
+                    "  KSAVE=-1,",
+                    "/",
+                    "&SPECIES",
+                    "  NSP=1,",
+                    "  UNITS='M',",
+                    "  DENSITY=55.5,",
+                    f"  MODEL='{selected_model.as_posix()}',",
+                    "/",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        subprocess.run(
+            [rism1d, stem.name],
+            cwd=str(work_dir),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=180,
+        )
+        generated = stem.with_suffix(".xvv")
+        if generated.exists() and generated.stat().st_size > 0:
+            shutil.copy2(generated, xvv_dir / generated.name)
+
+print("RISM asset normalization complete")
+for path in sorted(xvv_dir.glob("*.xvv")):
+    print(f"xvv: {path}")
+for path in sorted(mdl_dir.glob("*.mdl")):
+    print(f"mdl: {path}")
+PY
+
+
+# Fail image build early if required tools and Amber data are missing.
+RUN conda run --no-capture-output -n deep-tools python - <<'PY'
+import importlib
+import os
+import shutil
+from pathlib import Path
+
+mods = ["numpy", "scipy", "sklearn", "pandas", "networkx"]
+for mod in mods:
+    importlib.import_module(mod)
+
+if os.getenv("INSTALL_CUDAQ", "1") == "1":
+    try:
+        importlib.import_module("cudaq")
+        importlib.import_module("pyscf")
+    except Exception as e:
+        raise AssertionError(f"CUDA-Q install requested but validation failed: {e}")
+
+for binary in ("rism1d", "rism3d.snglpnt", "tleap", "obabel", "qvina-w", "vina"):
+    assert shutil.which(binary), f"missing binary: {binary}"
+
+amberhome = os.environ.get("AMBERHOME", "/opt/conda/envs/deep-tools")
+candidate_dirs = [
+    os.path.join(amberhome, "dat", "rism"),
+    os.path.join(amberhome, "dat", "rism1d"),
+    os.path.join(amberhome, "dat", "rism1d", "mdl"),
+    os.path.join(amberhome, "share", "amber", "dat", "rism"),
+    os.path.join(amberhome, "share", "amber", "dat", "rism1d"),
+    os.path.join(amberhome, "share", "amber", "dat", "rism1d", "mdl"),
+    os.path.join("/opt/conda", "pkgs"),
+]
+has_xvv = False
+has_mdl = False
+for directory in candidate_dirs:
+    if not os.path.isdir(directory):
+        continue
+    for candidate in Path(directory).rglob("*"):
+        if not candidate.is_file():
+            continue
+        lower = candidate.name.lower()
+        if lower.endswith(".xvv"):
+            has_xvv = True
+        if lower.endswith(".mdl"):
+            has_mdl = True
+assert has_xvv, "missing AmberTools RISM susceptibility data (*.xvv)"
+assert has_mdl, "missing AmberTools RISM 1D model data (*.mdl)"
+
+print("deep-tools env ready")
+PY
+
+RUN conda clean -afy
+
+# Force the deep-tools interpreter to be the default `python3`/`pip3` in this image.
+# The base image already rewires these paths to /opt/conda/bin/python; without
+# overriding them here, login shells can execute the py312 base interpreter instead
+# of the validated py311 deep-tools env.
+RUN ln -sf /opt/conda/envs/deep-tools/bin/python /usr/local/bin/python3 && \
+    ln -sf /opt/conda/envs/deep-tools/bin/pip /usr/local/bin/pip3 && \
+    ln -sf /opt/conda/envs/deep-tools/bin/python /usr/bin/python3 2>/dev/null || true
+
+ENV PATH=/opt/conda/envs/deep-tools/bin:/opt/conda/bin:/usr/local/bin:/usr/bin:/bin \
+    AMBERHOME=/opt/conda/envs/deep-tools \
+    PYTHONPATH=/opt/conda/envs/deep-tools/lib/python3.11/site-packages:/app:/app/app \
+    OMPI_MCA_opal_cuda_support=true \
+    OMPI_MCA_btl=^openib \
+    GBX_DATA_ROOT=/app/deploy/data \
+    GBX_DATA_DIR=/app/deploy/data \
+    ADMET_PIPELINE_MODEL_DIR=/app/deploy/models/admet_v3
+
+WORKDIR /app
+COPY modules /app/app
+USER 1000
+
+ENTRYPOINT []
+CMD ["bash"]
