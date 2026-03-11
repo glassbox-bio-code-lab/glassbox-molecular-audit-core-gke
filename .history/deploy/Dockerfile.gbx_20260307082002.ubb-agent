@@ -1,6 +1,6 @@
 FROM gcr.io/cloud-marketplace-tools/metering/ubbagent:latest
 
 # Marketplace-required OCI annotation (set via build arg for CI/CD).
-ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
+ARG MP_SERVICE_NAME=services/REPLACE_ME_SERVICE_NAME
 LABEL com.googleapis.cloudmarketplace.product.service.name=${MP_SERVICE_NAME}
 

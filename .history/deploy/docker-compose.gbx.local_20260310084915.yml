@@ -8,7 +8,7 @@ services:
         # Pin Miniconda to avoid upstream 'latest' moving to Python 3.13 (breaks rdkit-pypi wheels).
         BASE_IMAGE: continuumio/miniconda3:24.7.1-0
         # Required by Marketplace: OCI image annotation identifying the product service name.
-        MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog}
+        MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/REPLACE_ME_SERVICE_NAME}
         # Optional CUDA-Q install path for GPU Dockerfile (defaults off to keep build stable).
     env_file:
       - ./.env.gbx.local
@@ -70,3 +70,28 @@ services:
     working_dir: /app
     command: ["bash", "-lc", "sleep infinity"]
 
+  # Preflight UI + local server (runs inside the user's environment; install is free, runs are billed)
+  glassbox-preflight:
+    image: glassbox-preflight:latest
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.gbx.local
+      target: preflight
+      args:
+        MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/REPLACE_ME_SERVICE_NAME}
+    environment:
+      PORT: "8080"
+      K8S_INCLUSTER: "false"
+      K8S_AUTH_DISABLED: "true"
+      GBX_HTTP_BODY_LIMIT: "50mb"
+      GBX_INPUT_ROOT: "/data/input"
+      GBX_OUTPUT_ROOT: "/data/output"
+      GBX_RUNNER_IMAGE: "glassbox-mol-audit:latest"
+    ports:
+      # Bind to the Windows host-side WSL vEthernet IP (override with GBX_HOST_IP if needed).
+      - "${GBX_HOST_IP:-172.26.0.1}:8787:8080"
+    volumes:
+      - ../gbx_input:/data/input
+      - ../gbx_output:/data/output
+      # Optional: allow /api/pipeline/run to create Jobs against a real cluster from inside the container.
+      # - ${USERPROFILE}/.kube:/root/.kube:ro
