@@ -1,1 +1,203 @@
 
+type: object
+
+x-google-marketplace:
+  schemaVersion: v2
+  applicationApiVersion: v1beta1
+
+  publishedVersion: "1.0.0"
+  publishedVersionMetadata:
+    releaseNote: >-
+      Initial Marketplace release for Glassbox Bio Molecular Audit.
+    releaseTypes:
+      - Feature
+    recommended: true
+
+  deployment:
+    chart:
+      name: glassbox-mol-audit
+
+  images:
+    standard:
+      properties:
+        standardImageRepo:
+          type: REPO_WITH_REGISTRY
+        standardImageTag:
+          type: TAG
+    deep:
+      properties:
+        deepImageRepo:
+          type: REPO_WITH_REGISTRY
+        deepImageTag:
+          type: TAG
+    ubbagent:
+      properties:
+        ubbagentImageRepo:
+          type: REPO_WITH_REGISTRY
+        ubbagentImageTag:
+          type: TAG
+
+  configurableResources:
+    - name: glassbox-mol-audit
+      values:
+        # NAME/NAMESPACE fields control the Helm release name and namespace.
+        job.enabled: false
+
+        marketplace.reportingSecret: $reportingSecret
+        ubbagent.enabled: true
+        ubbagent.serviceName: "molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog"
+        ubbagent.metricName: ""
+        ubbagent.metricNameStandard: standard_audit_run
+        ubbagent.metricNameDeep: deep_audit_run
+        ubbagent.localPort: "4567"
+        ubbagent.image.repository: $ubbagentImageRepo
+        ubbagent.image.tag: $ubbagentImageTag
+        ubbagent.image.digest: $ubbagentImageDigest
+
+        image.standard.repository: $standardImageRepo
+        image.standard.tag: $standardImageTag
+        image.standard.digest: $standardImageDigest
+        image.deep.repository: $deepImageRepo
+        image.deep.tag: $deepImageTag
+        image.deep.digest: $deepImageDigest
+        image.repository: $standardImageRepo
+        image.tag: $standardImageTag
+        image.digest: $standardImageDigest
+
+        config.projectId: $projectId
+        config.runMode: $runMode
+        config.categoryId: $categoryId
+        config.failClosed: $failClosed
+        config.reproPackEnabled: $reproPackEnabled
+        config.standardModeQuiet: $standardModeQuiet
+
+        storage.type: $storageType
+        storage.pvc.size: $pvcSize
+        storage.pvc.storageClassName: $pvcStorageClass
+        storage.gcs.bucket: $gcsBucket
+
+        workloadIdentity.enabled: $workloadIdentityEnabled
+        workloadIdentity.gcpServiceAccount: $gcpServiceAccount
+
+properties:
+  name:
+    type: string
+    title: Application name
+    x-google-marketplace:
+      type: NAME
+
+  namespace:
+    type: string
+    title: Kubernetes namespace
+    x-google-marketplace:
+      type: NAMESPACE
+
+  reportingSecret:
+    type: string
+    title: Marketplace reporting secret
+    description: Kubernetes Secret name injected by Marketplace for usage reporting.
+    x-google-marketplace:
+      type: REPORTING_SECRET
+
+  projectId:
+    type: string
+    title: Project ID
+    default: mol_audit_demo
+
+  runMode:
+    type: string
+    title: Run mode
+    enum:
+      - standard
+      - deep
+    default: standard
+
+  categoryId:
+    type: string
+    title: Category ID
+    description: Required when enabling the runtime Job. Must match the project input evidence class.
+    default: ""
+
+  failClosed:
+    type: boolean
+    title: Fail closed on inadmissible inputs
+    default: true
+
+  reproPackEnabled:
+    type: boolean
+    title: Include Repro Pack outputs
+    default: true
+
+  standardModeQuiet:
+    type: boolean
+    title: Suppress standard-mode skip warnings
+    default: false
+
+  storageType:
+    type: string
+    title: Storage type
+    enum:
+      - pvc
+      - gcs
+    default: pvc
+
+  pvcSize:
+    type: string
+    title: PVC size
+    default: 50Gi
+
+  pvcStorageClass:
+    type: string
+    title: PVC StorageClass
+    default: standard
+
+  gcsBucket:
+    type: string
+    title: GCS bucket (for gcs storage)
+    default: ""
+
+  workloadIdentityEnabled:
+    type: boolean
+    title: Enable Workload Identity
+    description: Required for identity-only entitlement flow and recommended for GCS mode.
+    default: false
+
+  gcpServiceAccount:
+    type: string
+    title: GCP Service Account for Workload Identity
+    default: ""
+
+  standardImageDigest:
+    type: string
+    title: Standard runner image digest (optional)
+    description: Optional immutable standard runner image digest, format sha256:<64 hex chars>.
+    default: ""
+
+  deepImageDigest:
+    type: string
+    title: Deep runner image digest (optional)
+    description: Optional immutable deep runner image digest, format sha256:<64 hex chars>.
+    default: ""
+
+  ubbagentImageDigest:
+    type: string
+    title: UBB agent image digest (optional)
+    description: Optional immutable UBB agent image digest, format sha256:<64 hex chars>.
+    default: ""
+
+required:
+  - name
+  - namespace
+  - reportingSecret
+
+allOf:
+  - if:
+      properties:
+        workloadIdentityEnabled:
+          const: true
+    then:
+      properties:
+        gcpServiceAccount:
+          minLength: 1
+      required:
+        - gcpServiceAccount
