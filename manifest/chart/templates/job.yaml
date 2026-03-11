@@ -107,7 +107,7 @@ spec:
           args:
             - |
               set -eu
-              echo "[glassbox-mol-audit] project=${PROJECT_ID} phase=${PHASE}"
+              echo "[glassbox-mol-audit] project=${PROJECT_ID} mode=${GBX_RUN_MODE}"
               # Route STDERR to STDOUT so Cloud Logging doesn't mark normal progress logs as ERROR.
               exec python3 -m app.gbx_core_runner_v3 \
                 --project-id "${PROJECT_ID}" \

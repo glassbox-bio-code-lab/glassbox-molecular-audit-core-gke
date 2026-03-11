@@ -38,14 +38,12 @@ Billing model for this bundle:
 
 ## Deployer image
 
-The Marketplace deployer bundle is defined by `github/deployer/Dockerfile`.
-That image copies:
+Build the deployer image using `deployer/Dockerfile` and `make deployer-build`.
+`deployer/Dockerfile` copies:
 
 - `manifest/` -> `/data/manifest/`
 - `schema.yaml` -> `/data/schema.yaml`
 
 The deployer invokes Helm using `/data/schema.yaml` and
-`/data/manifest/application.yaml`.
-
-For internal build/publish steps, use `../../docs/RUNBOOK_PUBLISHER.md`.
-For internal release validation evidence, use `../../docs/MARKETPLACE_REVIEW_CHECKLIST.md`.
+`/data/manifest/application.yaml`. For release validation checks and required
+evidence, see `../docs/MARKETPLACE_REVIEW_CHECKLIST.md`.

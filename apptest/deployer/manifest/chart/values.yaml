@@ -1,0 +1,18 @@
+job:
+  enabled: false
+
+ubbagent:
+  enabled: false
+
+apptest:
+  enabled: true
+
+config:
+  projectId: verification_project
+  runMode: standard
+  categoryId: SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ
+  failClosed: false
+  entitlementUrl: http://127.0.0.1:9
+  entitlementAuthMode: google
+  entitlementAudience: http://127.0.0.1:9
+  standardModeQuiet: true

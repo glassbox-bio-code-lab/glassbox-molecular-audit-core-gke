@@ -1,28 +1,26 @@
-type: object
-
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
 
   # Not published directly; this schema is used only for Verification (/data-test overlay).
-  publishedVersion: "1.0.0"
+  publishedVersion: "1.0.1"
 
   deployment:
     chart:
       name: glassbox-mol-audit
 
   images:
-    "":
+    standard:
       properties:
-        imageRepo:
+        standardImageRepo:
           type: REPO_WITH_REGISTRY
-        imageTag:
+        standardImageTag:
           type: TAG
-    console:
+    deep:
       properties:
-        consoleImageRepo:
+        deepImageRepo:
           type: REPO_WITH_REGISTRY
-        consoleImageTag:
+        deepImageTag:
           type: TAG
     ubbagent:
       properties:
@@ -41,24 +39,31 @@ x-google-marketplace:
     - name: glassbox-mol-audit
       values:
         # NAME/NAMESPACE fields control the Helm release name and namespace.
-        console.enabled: true
         job.enabled: false
 
         # Verification should not perform metering.
         ubbagent.enabled: false
         marketplace.reportingSecret: $reportingSecret
 
-        image.repository: $imageRepo
-        image.tag: $imageTag
-        console.image.repository: $consoleImageRepo
-        console.image.tag: $consoleImageTag
+        image.standard.repository: $standardImageRepo
+        image.standard.tag: $standardImageTag
+        image.deep.repository: $deepImageRepo
+        image.deep.tag: $deepImageTag
+        image.repository: $standardImageRepo
+        image.tag: $standardImageTag
 
         apptest.enabled: true
         apptest.image.repository: $testerImageRepo
         apptest.image.tag: $testerImageTag
 
         config.projectId: $projectId
-        config.phase: $phase
+        config.runMode: standard
+        config.categoryId: SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ
+        config.failClosed: false
+        config.entitlementUrl: http://127.0.0.1:9
+        config.entitlementAuthMode: google
+        config.entitlementAudience: http://127.0.0.1:9
+        config.standardModeQuiet: true
 
 properties:
   name:
@@ -81,41 +86,37 @@ properties:
       type: REPORTING_SECRET
 
   # Defaults below make `mpdev verify` usable without passing parameters.
-  imageRepo:
+  standardImageRepo:
     type: string
-    default: us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/glassbox-mol-audit
-  imageTag:
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
+  standardImageTag:
     type: string
-    default: 1.0.0
+    default: 1.0.1
 
-  consoleImageRepo:
+  deepImageRepo:
     type: string
-    default: us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/glassbox-mol-audit/console
-  consoleImageTag:
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools
+  deepImageTag:
     type: string
-    default: 1.0.0
+    default: 1.0.1
 
   ubbagentImageRepo:
     type: string
-    default: us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
   ubbagentImageTag:
     type: string
-    default: latest
+    default: 1.0.1
 
   testerImageRepo:
     type: string
-    default: us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
   testerImageTag:
     type: string
-    default: 0.1.0
+    default: 1.0.1
 
   projectId:
     type: string
-    default: test_project
-
-  phase:
-    type: string
-    default: Glassbox Bio Molecular Audit
+    default: verification_project
 
 required:
   - name

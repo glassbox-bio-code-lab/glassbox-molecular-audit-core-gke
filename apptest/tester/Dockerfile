@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     jq \
     curl \
+    tar \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL -o /bin/kubectl \
@@ -17,6 +18,7 @@ RUN curl -fsSL -o /bin/kubectl \
 
 COPY tests/basic-suite.yaml /tests/basic-suite.yaml
 COPY run_tests.py /run_tests.py
+COPY fixtures/test/ /fixtures/test/
 
 WORKDIR /
 RUN pip install --no-cache-dir pyyaml

@@ -1,83 +1,123 @@
 actions:
-- name: Console deployment becomes ready
+- name: Core resources are installed
   bashTest:
     script: |-
       set -euo pipefail
-      kubectl rollout status deployment/${APP_INSTANCE_NAME}-console -n ${NAMESPACE} --timeout=600s
+      kubectl -n "${NAMESPACE}" get configmap "${APP_CONFIGMAP}" >/dev/null
+      kubectl -n "${NAMESPACE}" get pvc "${APP_PVC_NAME}" >/dev/null
+      kubectl -n "${NAMESPACE}" get serviceaccount "${APP_SERVICE_ACCOUNT}" >/dev/null
 
-- name: Console health endpoint responds
+- name: Stage verification input bundle into the shared PVC
   bashTest:
     script: |-
       set -euo pipefail
-      base="http://${APP_INSTANCE_NAME}-console.${NAMESPACE}.svc.cluster.local"
-      curl -fsS "${base}/api/health" | jq -e '.status=="ok"' >/dev/null
+      helper="${APP_INSTANCE_NAME}-verification-io"
+      kubectl -n "${NAMESPACE}" delete pod "${helper}" --ignore-not-found >/dev/null 2>&1 || true
+      cat <<YAML | kubectl -n "${NAMESPACE}" apply -f -
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: ${helper}
+        labels:
+          app.kubernetes.io/instance: ${APP_INSTANCE_NAME}
+          app.kubernetes.io/name: glassbox-mol-audit
+      spec:
+        restartPolicy: Never
+        serviceAccountName: ${APP_SERVICE_ACCOUNT}
+        containers:
+        - name: io
+          image: alpine:3.20
+          command: ["/bin/sh", "-c", "sleep 3600"]
+          volumeMounts:
+          - name: data
+            mountPath: /data
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ${APP_PVC_NAME}
+      YAML
+      kubectl -n "${NAMESPACE}" wait --for=condition=Ready "pod/${helper}" --timeout=180s
+      kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "mkdir -p /data/input/${APP_PROJECT_ID}"
+      kubectl -n "${NAMESPACE}" cp /fixtures/test/. "${helper}:/data/input/${APP_PROJECT_ID}"
+      kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "find /data/input/${APP_PROJECT_ID} -maxdepth 2 -type f | sort | head -20"
 
-- name: Preflight schema/examples and validate pipeline inputs
+- name: Run a standard verification job
   bashTest:
     script: |-
       set -euo pipefail
-      base="http://${APP_INSTANCE_NAME}-console.${NAMESPACE}.svc.cluster.local"
+      run_id="verification-${APP_INSTANCE_NAME}"
+      job_name="${APP_INSTANCE_NAME}-verification-run"
+      kubectl -n "${NAMESPACE}" delete job "${job_name}" --ignore-not-found >/dev/null 2>&1 || true
+      cat <<YAML | kubectl -n "${NAMESPACE}" apply -f -
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: ${job_name}
+        labels:
+          app.kubernetes.io/instance: ${APP_INSTANCE_NAME}
+          app.kubernetes.io/name: glassbox-mol-audit
+      spec:
+        backoffLimit: 0
+        ttlSecondsAfterFinished: 600
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/instance: ${APP_INSTANCE_NAME}
+              app.kubernetes.io/name: glassbox-mol-audit
+          spec:
+            restartPolicy: Never
+            serviceAccountName: ${APP_SERVICE_ACCOUNT}
+            initContainers:
+            - name: init-volume-perms
+              image: alpine:3.20
+              command: ["/bin/sh", "-c"]
+              args:
+              - |
+                set -eu
+                mkdir -p /data/input /data/output
+                chmod -R a+rwX /data/input /data/output || true
+              volumeMounts:
+              - name: data
+                mountPath: /data
+            containers:
+            - name: glassbox-mol-audit
+              image: ${APP_RUNTIME_IMAGE}
+              envFrom:
+              - configMapRef:
+                  name: ${APP_CONFIGMAP}
+              env:
+              - name: GBX_RUN_ID
+                value: ${run_id}
+              command: ["/bin/sh", "-c"]
+              args:
+              - |
+                set -eu
+                exec python3 -m app.gbx_core_runner_v3 \
+                  --project-id "${PROJECT_ID}" \
+                  --input-root "${INPUT_PATH}" \
+                  --output-dir "${OUTPUT_PATH}" 2>&1
+              volumeMounts:
+              - name: data
+                mountPath: /data
+            volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: ${APP_PVC_NAME}
+      YAML
+      if ! kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job_name}" --timeout=3600s; then
+        kubectl -n "${NAMESPACE}" describe job "${job_name}" || true
+        kubectl -n "${NAMESPACE}" logs "job/${job_name}" --all-containers --timestamps --tail=500 || true
+        exit 1
+      fi
 
-      # Pull example inputs from the server
-      sources="$(curl -fsS "${base}/api/schema/examples/sources.json")"
-      targets="$(curl -fsS "${base}/api/schema/examples/targets.csv")"
-      compounds="$(curl -fsS "${base}/api/schema/examples/compounds.csv")"
-      assays="$(curl -fsS "${base}/api/schema/examples/assays.csv")"
-
-      # Ensure sources.json has a project_id for downstream steps
-      project_id="${APP_INSTANCE_NAME}"
-      sources="$(echo "${sources}" | jq --arg pid "${project_id}" '.project_id=$pid')"
-
-      payload="$(jq -n \
-        --arg sources "${sources}" \
-        --arg targets "${targets}" \
-        --arg compounds "${compounds}" \
-        --arg assays "${assays}" \
-        --arg pid "${project_id}" \
-        '{
-          files: [
-            {name:"sources.json", size: ( $sources|length ), type:"application/json", lastModified: 0, content: $sources},
-            {name:"targets.csv", size: ( $targets|length ), type:"text/csv", lastModified: 0, content: $targets},
-            {name:"compounds.csv", size: ( $compounds|length ), type:"text/csv", lastModified: 0, content: $compounds},
-            {name:"assays.csv", size: ( $assays|length ), type:"text/csv", lastModified: 0, content: $assays}
-          ],
-          context: { projectId: $pid }
-        }')"
-
-      report="$(curl -fsS -X POST "${base}/api/validate" -H 'Content-Type: application/json' --data-binary "${payload}")"
-      echo "${report}" | jq -e '.overallStatus!="FAIL"' >/dev/null
-      echo "${report}" | jq -e --arg pid "${project_id}" '.context.projectId==$pid' >/dev/null
-
-- name: Store validated inputs into the shared volume
+- name: Verify output artifacts exist
   bashTest:
     script: |-
       set -euo pipefail
-      base="http://${APP_INSTANCE_NAME}-console.${NAMESPACE}.svc.cluster.local"
-
-      sources="$(curl -fsS "${base}/api/schema/examples/sources.json")"
-      targets="$(curl -fsS "${base}/api/schema/examples/targets.csv")"
-      compounds="$(curl -fsS "${base}/api/schema/examples/compounds.csv")"
-      assays="$(curl -fsS "${base}/api/schema/examples/assays.csv")"
-
-      project_id="${APP_INSTANCE_NAME}"
-      sources="$(echo "${sources}" | jq --arg pid "${project_id}" '.project_id=$pid')"
-
-      payload="$(jq -n \
-        --arg sources "${sources}" \
-        --arg targets "${targets}" \
-        --arg compounds "${compounds}" \
-        --arg assays "${assays}" \
-        --arg pid "${project_id}" \
-        '{
-          projectId: $pid,
-          context: { projectId: $pid },
-          files: [
-            {name:"sources.json", size: ( $sources|length ), type:"application/json", lastModified: 0, content: $sources},
-            {name:"targets.csv", size: ( $targets|length ), type:"text/csv", lastModified: 0, content: $targets},
-            {name:"compounds.csv", size: ( $compounds|length ), type:"text/csv", lastModified: 0, content: $compounds},
-            {name:"assays.csv", size: ( $assays|length ), type:"text/csv", lastModified: 0, content: $assays}
-          ]
-        }')"
-
-      resp="$(curl -fsS -X POST "${base}/api/inputs/store" -H 'Content-Type: application/json' --data-binary "${payload}")"
-      echo "${resp}" | jq -e '.status=="ok"' >/dev/null
+      helper="${APP_INSTANCE_NAME}-verification-io"
+      run_id="verification-${APP_INSTANCE_NAME}"
+      kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/results/summary.json"
+      kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/run_manifest.json"
+      kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "jq -e '.status == \"SUCCESS\" or .status == \"success\" or .execution' /data/output/${run_id}/results/summary.json >/dev/null"
+      kubectl -n "${NAMESPACE}" delete job "${APP_INSTANCE_NAME}-verification-run" --ignore-not-found >/dev/null 2>&1 || true
+      kubectl -n "${NAMESPACE}" delete pod "${helper}" --ignore-not-found >/dev/null 2>&1 || true

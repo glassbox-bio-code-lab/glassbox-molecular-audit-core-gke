@@ -1,11 +1,8 @@
-
-type: object
-
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
 
-  publishedVersion: "1.0.0"
+  publishedVersion: "1.0.1"
   publishedVersionMetadata:
     releaseNote: >-
       Initial Marketplace release for Glassbox Bio Molecular Audit.
@@ -16,6 +13,16 @@ x-google-marketplace:
   deployment:
     chart:
       name: glassbox-mol-audit
+
+  clusterConstraints:
+    k8sVersion: ">=1.27.0"
+    assistedClusterCreation:
+      type: DISABLED
+      creationGuidance: >-
+        Create or select a GKE cluster before deployment. Standard mode runs on
+        x86 Kubernetes nodes. Deep mode requires a compatible NVIDIA GPU node
+        pool and is zone-capacity dependent; the current chart default targets
+        cloud.google.com/gke-accelerator=nvidia-l4.
 
   images:
     standard:

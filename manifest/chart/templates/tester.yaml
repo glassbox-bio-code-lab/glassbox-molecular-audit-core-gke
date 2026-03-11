@@ -24,4 +24,24 @@ spec:
           value: {{ include "glassbox-mol-audit.fullname" . | quote }}
         - name: NAMESPACE
           value: {{ .Release.Namespace | quote }}
+        - name: APP_CONFIGMAP
+          value: {{ printf "%s-config" (include "glassbox-mol-audit.fullname" .) | quote }}
+        - name: APP_SERVICE_ACCOUNT
+          value: {{ include "glassbox-mol-audit.serviceAccountName" . | quote }}
+        - name: APP_PVC_NAME
+          value: {{ printf "%s-data" (include "glassbox-mol-audit.fullname" .) | quote }}
+        - name: APP_PROJECT_ID
+          value: {{ .Values.config.projectId | quote }}
+        - name: APP_CATEGORY_ID
+          value: {{ .Values.config.categoryId | quote }}
+        {{- $runnerRepo := include "glassbox-mol-audit.runnerImageRepository" . }}
+        {{- $runnerTag := include "glassbox-mol-audit.runnerImageTag" . }}
+        {{- $runnerDigest := include "glassbox-mol-audit.runnerImageDigest" . }}
+        {{- if $runnerDigest }}
+        - name: APP_RUNTIME_IMAGE
+          value: "{{ $runnerRepo }}@{{ $runnerDigest }}"
+        {{- else }}
+        - name: APP_RUNTIME_IMAGE
+          value: "{{ $runnerRepo }}:{{ $runnerTag }}"
+        {{- end }}
 {{- end }}
