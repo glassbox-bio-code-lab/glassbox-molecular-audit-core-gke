@@ -4,16 +4,19 @@ FROM python:3.11-slim
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
 LABEL com.googleapis.cloudmarketplace.product.service.name=${MP_SERVICE_NAME}
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+ARG KUBECTL_VERSION=v1.34.3
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     ca-certificates \
     bash \
     jq \
     curl \
     tar \
+    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL -o /bin/kubectl \
-    https://storage.googleapis.com/kubernetes-release/release/v1.27.0/bin/linux/amd64/kubectl \
+    https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl \
       && chmod 755 /bin/kubectl
 
 COPY tests/basic-suite.yaml /tests/basic-suite.yaml

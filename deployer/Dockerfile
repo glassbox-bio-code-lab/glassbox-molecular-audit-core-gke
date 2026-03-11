@@ -1,4 +1,4 @@
-ARG DEPLOYER_BASE_IMAGE=gcr.io/cloud-marketplace-tools/k8s/deployer_helm:0.12.0
+ARG DEPLOYER_BASE_IMAGE=gcr.io/cloud-marketplace-tools/k8s/deployer_helm:0.12.12
 FROM ${DEPLOYER_BASE_IMAGE}
 
 RUN mkdir -p /data /data-test

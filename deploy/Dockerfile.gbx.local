@@ -13,6 +13,7 @@ USER root
 # System libs (aligned to Phase 5 service image).
 RUN apt-get update && \
     apt-mark hold libibverbs1 libibverbs-dev 2>/dev/null || true && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     --allow-change-held-packages \
     --fix-broken \
@@ -29,6 +30,7 @@ RUN apt-get update && \
     curl \
     bzip2 \
     openbabel && \
+    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Ensure "python3"/"pip3" resolve to the Miniconda interpreter so packages installed
@@ -91,6 +93,7 @@ COPY deploy/requirements-pipeline.txt /requirements-pipeline.txt
 # in some builder environments.
 RUN pip install --no-cache-dir --upgrade --only-binary=:all: cryptography cffi
 RUN pip install --no-cache-dir -r /requirements-pipeline.txt
+RUN pip install --no-cache-dir --upgrade "certifi>=2024.8.30"
 RUN pip install --no-cache-dir google-cloud-storage google-auth
 RUN pip install --no-cache-dir Jinja2
 

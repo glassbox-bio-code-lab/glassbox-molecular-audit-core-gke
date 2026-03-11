@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=glassbox-mol-audit:latest
+ARG BASE_IMAGE=glassbox-mol-audit:1.0
 FROM ${BASE_IMAGE}
 
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
@@ -53,6 +53,7 @@ RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache
 COPY deploy/requirements-pipeline.txt /tmp/requirements-pipeline.txt
 RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
     conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir -r /tmp/requirements-pipeline.txt
+RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache-dir --upgrade "certifi>=2024.8.30"
 
 
     
@@ -61,6 +62,7 @@ RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache
 RUN conda install -y -n base --solver libmamba -c conda-forge \
       "ambertools=23.3" \
       openbabel
+RUN /opt/conda/bin/python -m pip install --no-cache-dir --upgrade "certifi>=2024.8.30"
 
 # CUDA-Q + PySCF for quantum modules.
 # For CUDA 11.8 runtimes, prefer explicit cu11 distributions; do not fail whole image if unavailable.
