@@ -3,7 +3,7 @@ x-google-marketplace:
   applicationApiVersion: v1beta1
 
   # Not published directly; this schema is used only for Verification (/data-test overlay).
-  publishedVersion: "1.0.1"
+  publishedVersion: "1.0"
 
   deployment:
     chart:
