@@ -5,65 +5,31 @@ x-google-marketplace:
   # Not published directly; this schema is used only for Verification (/data-test overlay).
   publishedVersion: "1.0"
 
-  deployment:
-    chart:
-      name: glassbox-mol-audit
-
   images:
-    standard:
+    "":
       properties:
-        standardImageRepo:
+        image.standard.repository:
           type: REPO_WITH_REGISTRY
-        standardImageTag:
+        image.standard.tag:
           type: TAG
-    deep:
+    deep-tools:
       properties:
-        deepImageRepo:
+        image.deep.repository:
           type: REPO_WITH_REGISTRY
-        deepImageTag:
+        image.deep.tag:
           type: TAG
     ubbagent:
       properties:
-        ubbagentImageRepo:
+        ubbagent.image.repository:
           type: REPO_WITH_REGISTRY
-        ubbagentImageTag:
+        ubbagent.image.tag:
           type: TAG
     tester:
       properties:
-        testerImageRepo:
+        apptest.image.repository:
           type: REPO_WITH_REGISTRY
-        testerImageTag:
+        apptest.image.tag:
           type: TAG
-
-  configurableResources:
-    - name: glassbox-mol-audit
-      values:
-        # NAME/NAMESPACE fields control the Helm release name and namespace.
-        job.enabled: false
-
-        # Verification should not perform metering.
-        ubbagent.enabled: false
-        marketplace.reportingSecret: $reportingSecret
-
-        image.standard.repository: $standardImageRepo
-        image.standard.tag: $standardImageTag
-        image.deep.repository: $deepImageRepo
-        image.deep.tag: $deepImageTag
-        image.repository: $standardImageRepo
-        image.tag: $standardImageTag
-
-        apptest.enabled: true
-        apptest.image.repository: $testerImageRepo
-        apptest.image.tag: $testerImageTag
-
-        config.projectId: $projectId
-        config.runMode: standard
-        config.categoryId: SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ
-        config.failClosed: false
-        config.entitlementUrl: http://127.0.0.1:9
-        config.entitlementAuthMode: google
-        config.entitlementAudience: http://127.0.0.1:9
-        config.standardModeQuiet: true
 
 properties:
   name:
@@ -79,46 +45,46 @@ properties:
     default: glassbox-mol-audit-test
 
   # Satisfies required REPORTING_SECRET wiring in the base schema.
-  reportingSecret:
+  marketplace.reportingSecret:
     type: string
     default: gs://cloud-marketplace-tools/reporting_secrets/fake_reporting_secret.yaml
     x-google-marketplace:
       type: REPORTING_SECRET
 
   # Defaults below make `mpdev verify` usable without passing parameters.
-  standardImageRepo:
+  image.standard.repository:
     type: string
     default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
-  standardImageTag:
+  image.standard.tag:
     type: string
-    default: 1.0.1
+    default: 1.0
 
-  deepImageRepo:
+  image.deep.repository:
     type: string
-    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools
-  deepImageTag:
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
+  image.deep.tag:
     type: string
-    default: 1.0.1
+    default: 1.0
 
-  ubbagentImageRepo:
+  ubbagent.image.repository:
     type: string
     default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
-  ubbagentImageTag:
+  ubbagent.image.tag:
     type: string
-    default: 1.0.1
+    default: 1.0
 
-  testerImageRepo:
+  apptest.image.repository:
     type: string
     default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
-  testerImageTag:
+  apptest.image.tag:
     type: string
-    default: 1.0.1
+    default: 1.0
 
-  projectId:
+  config.projectId:
     type: string
     default: verification_project
 
 required:
   - name
   - namespace
-  - reportingSecret
+  - marketplace.reportingSecret

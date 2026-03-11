@@ -21,13 +21,13 @@ x-google-marketplace:
         cloud.google.com/gke-accelerator=nvidia-l4.
 
   images:
-    standard:
+    "":
       properties:
         image.standard.repository:
           type: REPO_WITH_REGISTRY
         image.standard.tag:
           type: TAG
-    deep:
+    deep-tools:
       properties:
         image.deep.repository:
           type: REPO_WITH_REGISTRY
