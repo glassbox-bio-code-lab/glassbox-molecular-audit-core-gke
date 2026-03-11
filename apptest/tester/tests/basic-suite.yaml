@@ -1,0 +1,83 @@
+actions:
+- name: Console deployment becomes ready
+  bashTest:
+    script: |-
+      set -euo pipefail
+      kubectl rollout status deployment/${APP_INSTANCE_NAME}-console -n ${NAMESPACE} --timeout=600s
+
+- name: Console health endpoint responds
+  bashTest:
+    script: |-
+      set -euo pipefail
+      base="http://${APP_INSTANCE_NAME}-console.${NAMESPACE}.svc.cluster.local"
+      curl -fsS "${base}/api/health" | jq -e '.status=="ok"' >/dev/null
+
+- name: Preflight schema/examples and validate pipeline inputs
+  bashTest:
+    script: |-
+      set -euo pipefail
+      base="http://${APP_INSTANCE_NAME}-console.${NAMESPACE}.svc.cluster.local"
+
+      # Pull example inputs from the server
+      sources="$(curl -fsS "${base}/api/schema/examples/sources.json")"
+      targets="$(curl -fsS "${base}/api/schema/examples/targets.csv")"
+      compounds="$(curl -fsS "${base}/api/schema/examples/compounds.csv")"
+      assays="$(curl -fsS "${base}/api/schema/examples/assays.csv")"
+
+      # Ensure sources.json has a project_id for downstream steps
+      project_id="${APP_INSTANCE_NAME}"
+      sources="$(echo "${sources}" | jq --arg pid "${project_id}" '.project_id=$pid')"
+
+      payload="$(jq -n \
+        --arg sources "${sources}" \
+        --arg targets "${targets}" \
+        --arg compounds "${compounds}" \
+        --arg assays "${assays}" \
+        --arg pid "${project_id}" \
+        '{
+          files: [
+            {name:"sources.json", size: ( $sources|length ), type:"application/json", lastModified: 0, content: $sources},
+            {name:"targets.csv", size: ( $targets|length ), type:"text/csv", lastModified: 0, content: $targets},
+            {name:"compounds.csv", size: ( $compounds|length ), type:"text/csv", lastModified: 0, content: $compounds},
+            {name:"assays.csv", size: ( $assays|length ), type:"text/csv", lastModified: 0, content: $assays}
+          ],
+          context: { projectId: $pid }
+        }')"
+
+      report="$(curl -fsS -X POST "${base}/api/validate" -H 'Content-Type: application/json' --data-binary "${payload}")"
+      echo "${report}" | jq -e '.overallStatus!="FAIL"' >/dev/null
+      echo "${report}" | jq -e --arg pid "${project_id}" '.context.projectId==$pid' >/dev/null
+
+- name: Store validated inputs into the shared volume
+  bashTest:
+    script: |-
+      set -euo pipefail
+      base="http://${APP_INSTANCE_NAME}-console.${NAMESPACE}.svc.cluster.local"
+
+      sources="$(curl -fsS "${base}/api/schema/examples/sources.json")"
+      targets="$(curl -fsS "${base}/api/schema/examples/targets.csv")"
+      compounds="$(curl -fsS "${base}/api/schema/examples/compounds.csv")"
+      assays="$(curl -fsS "${base}/api/schema/examples/assays.csv")"
+
+      project_id="${APP_INSTANCE_NAME}"
+      sources="$(echo "${sources}" | jq --arg pid "${project_id}" '.project_id=$pid')"
+
+      payload="$(jq -n \
+        --arg sources "${sources}" \
+        --arg targets "${targets}" \
+        --arg compounds "${compounds}" \
+        --arg assays "${assays}" \
+        --arg pid "${project_id}" \
+        '{
+          projectId: $pid,
+          context: { projectId: $pid },
+          files: [
+            {name:"sources.json", size: ( $sources|length ), type:"application/json", lastModified: 0, content: $sources},
+            {name:"targets.csv", size: ( $targets|length ), type:"text/csv", lastModified: 0, content: $targets},
+            {name:"compounds.csv", size: ( $compounds|length ), type:"text/csv", lastModified: 0, content: $compounds},
+            {name:"assays.csv", size: ( $assays|length ), type:"text/csv", lastModified: 0, content: $assays}
+          ]
+        }')"
+
+      resp="$(curl -fsS -X POST "${base}/api/inputs/store" -H 'Content-Type: application/json' --data-binary "${payload}")"
+      echo "${resp}" | jq -e '.status=="ok"' >/dev/null

@@ -1,0 +1,2 @@
+target_id,symbol,name,uniprot,indication,modality,mechanism
+CHEMBL1862,ABL1,Tyrosine-protein kinase ABL1,P00519,Chronic myeloid leukemia (CML) Philadelphia chromosome-positive,Small molecule kinase inhibitor (oral),"Selective ATP-competitive inhibition of the BCR-ABL1 tyrosine kinase, stabilizing the inactive conformation of ABL1 and suppressing oncogenic signaling; resistance via kinase domain mutations (e.g., T315I) requires sequencing and TKI switch or allosteric/combination strategies."

@@ -1,0 +1,29 @@
+{
+  "project_id": "clinical_outcomes_retroaudit_bcr_abl",
+  "company": "Novartis",
+  "target": {
+    "symbol": "ABL1",
+    "hgnc_id": "HGNC:76",
+    "name": "Tyrosine-protein kinase ABL1",
+    "uniprot": "P00519",
+    "organism": "Homo sapiens"
+  },
+  "indication": "Chronic myeloid leukemia (CML), Philadelphia chromosome-positive",
+  "mechanism_of_action": "Selective ATP-competitive inhibition of the BCR‑ABL1 tyrosine kinase, stabilizing the inactive conformation of ABL1 and suppressing oncogenic signaling.",
+  "modality": "Small molecule kinase inhibitor (oral)",
+  "context_of_use": "BCR‑ABL1 is the pathognomonic driver of CML; imatinib delivered a step-change in survival and first-line adoption globally.",
+  "evidence_positive": [
+    "ABL1 is the reviewed UniProt target P00519; BCR‑ABL1 fusions drive CML signaling [UniProt ABL1].",
+    "Population-level adoption of imatinib as first line associated with marked survival gains and deep molecular responses [trial/observational synthesis].",
+    "Resistance mechanisms mapped to BCR‑ABL1 mutations; second/third-generation TKIs confirm target validity and pathway addiction [mutation/lineage data]."
+  ],
+  "evidence_negative": [
+    "Emergent kinase domain mutations (e.g., T315I) confer resistance; requires sequencing and TKI switch or allosteric/combination strategies [mutation/resistance]."
+  ],
+  "known_risks": "Myelosuppression, edema, hepatotoxicity; resistance via kinase mutations (P-loop, gatekeeper) necessitates molecular monitoring [class/risk].",
+  "retrieved_at": "2025-11-13T19:13:00Z",
+  "targets_csv": "./targets.csv",
+  "assays_csv": "./assays.csv",
+  "compounds_csv": "./compounds.csv",
+  "pdbs": "./structures/*.pdb"
+}

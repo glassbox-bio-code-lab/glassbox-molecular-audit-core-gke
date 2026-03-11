@@ -1,0 +1,123 @@
+type: object
+
+x-google-marketplace:
+  schemaVersion: v2
+  applicationApiVersion: v1beta1
+
+  # Not published directly; this schema is used only for Verification (/data-test overlay).
+  publishedVersion: "1.0.0"
+
+  deployment:
+    chart:
+      name: glassbox-mol-audit
+
+  images:
+    "":
+      properties:
+        imageRepo:
+          type: REPO_WITH_REGISTRY
+        imageTag:
+          type: TAG
+    console:
+      properties:
+        consoleImageRepo:
+          type: REPO_WITH_REGISTRY
+        consoleImageTag:
+          type: TAG
+    ubbagent:
+      properties:
+        ubbagentImageRepo:
+          type: REPO_WITH_REGISTRY
+        ubbagentImageTag:
+          type: TAG
+    tester:
+      properties:
+        testerImageRepo:
+          type: REPO_WITH_REGISTRY
+        testerImageTag:
+          type: TAG
+
+  configurableResources:
+    - name: glassbox-mol-audit
+      values:
+        # NAME/NAMESPACE fields control the Helm release name and namespace.
+        console.enabled: true
+        job.enabled: false
+
+        # Verification should not perform metering.
+        ubbagent.enabled: false
+        marketplace.reportingSecret: $reportingSecret
+
+        image.repository: $imageRepo
+        image.tag: $imageTag
+        console.image.repository: $consoleImageRepo
+        console.image.tag: $consoleImageTag
+
+        apptest.enabled: true
+        apptest.image.repository: $testerImageRepo
+        apptest.image.tag: $testerImageTag
+
+        config.projectId: $projectId
+        config.phase: $phase
+
+properties:
+  name:
+    type: string
+    x-google-marketplace:
+      type: NAME
+    default: glassbox-mol-audit-test
+
+  namespace:
+    type: string
+    x-google-marketplace:
+      type: NAMESPACE
+    default: glassbox-mol-audit-test
+
+  # Satisfies required REPORTING_SECRET wiring in the base schema.
+  reportingSecret:
+    type: string
+    default: gs://cloud-marketplace-tools/reporting_secrets/fake_reporting_secret.yaml
+    x-google-marketplace:
+      type: REPORTING_SECRET
+
+  # Defaults below make `mpdev verify` usable without passing parameters.
+  imageRepo:
+    type: string
+    default: us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/glassbox-mol-audit
+  imageTag:
+    type: string
+    default: 1.0.0
+
+  consoleImageRepo:
+    type: string
+    default: us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/glassbox-mol-audit/console
+  consoleImageTag:
+    type: string
+    default: 1.0.0
+
+  ubbagentImageRepo:
+    type: string
+    default: us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
+  ubbagentImageTag:
+    type: string
+    default: latest
+
+  testerImageRepo:
+    type: string
+    default: us-central1-docker.pkg.dev/glassbox-marketplace-prod/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
+  testerImageTag:
+    type: string
+    default: 0.1.0
+
+  projectId:
+    type: string
+    default: test_project
+
+  phase:
+    type: string
+    default: Glassbox Bio Molecular Audit
+
+required:
+  - name
+  - namespace
+  - reportingSecret

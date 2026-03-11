@@ -1,0 +1,16 @@
+{{- if eq .Values.storage.type "pvc" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "glassbox-mol-audit.fullname" . }}-data
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "glassbox-mol-audit.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.storage.pvc.size | quote }}
+  storageClassName: {{ .Values.storage.pvc.storageClassName | quote }}
+{{- end }}

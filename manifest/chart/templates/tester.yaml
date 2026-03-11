@@ -1,0 +1,27 @@
+{{- if .Values.apptest.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "glassbox-mol-audit.fullname" . }}-tester
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    marketplace.cloud.google.com/verification: "test"
+  labels:
+    {{- include "glassbox-mol-audit.labels" . | nindent 4 }}
+spec:
+  restartPolicy: Never
+  serviceAccountName: {{ include "glassbox-mol-audit.serviceAccountName" . | quote }}
+  containers:
+    - name: tester
+      {{- if .Values.apptest.image.digest }}
+      image: "{{ .Values.apptest.image.repository }}@{{ .Values.apptest.image.digest }}"
+      {{- else }}
+      image: "{{ .Values.apptest.image.repository }}:{{ .Values.apptest.image.tag }}"
+      {{- end }}
+      imagePullPolicy: {{ .Values.apptest.image.pullPolicy }}
+      env:
+        - name: APP_INSTANCE_NAME
+          value: {{ include "glassbox-mol-audit.fullname" . | quote }}
+        - name: NAMESPACE
+          value: {{ .Release.Namespace | quote }}
+{{- end }}

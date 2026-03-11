@@ -1,0 +1,191 @@
+{{- if .Values.job.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "glassbox-mol-audit.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "glassbox-mol-audit.labels" . | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "glassbox-mol-audit.labels" . | nindent 8 }}
+      {{- if eq .Values.storage.type "gcs" }}
+      annotations:
+        gke-gcsfuse/volumes: "true"
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "glassbox-mol-audit.serviceAccountName" . | quote }}
+      initContainers:
+        - name: init-volume-perms
+          # Keep the init helper lightweight. Pulling the full deep-tools runtime here
+          # delays job startup on cold GPU nodes even though this container only needs
+          # POSIX mkdir/chmod for the mounted /data paths.
+          image: "alpine:3.20"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: MOUNT_PATH
+              value: {{ if eq .Values.storage.type "gcs" }}{{ .Values.storage.gcs.mountPath | quote }}{{ else }}"/data"{{ end }}
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              set -eu
+              # Ensure the PVC-backed /data paths are writable even when the main image runs as a non-root UID.
+              mkdir -p "${MOUNT_PATH}/input" "${MOUNT_PATH}/output"
+              chmod -R a+rwX "${MOUNT_PATH}/input" "${MOUNT_PATH}/output" || true
+          volumeMounts:
+            - name: mol-audit-data
+              mountPath: {{ if eq .Values.storage.type "gcs" }}{{ .Values.storage.gcs.mountPath }}{{ else }}/data{{ end }}
+      containers:
+        - name: glassbox-mol-audit
+          {{- $runnerRepo := include "glassbox-mol-audit.runnerImageRepository" . }}
+          {{- $runnerTag := include "glassbox-mol-audit.runnerImageTag" . }}
+          {{- $runnerDigest := include "glassbox-mol-audit.runnerImageDigest" . }}
+          {{- if $runnerDigest }}
+          image: "{{ $runnerRepo }}@{{ $runnerDigest }}"
+          {{- else }}
+          image: "{{ $runnerRepo }}:{{ $runnerTag }}"
+          {{- end }}
+          imagePullPolicy: {{ include "glassbox-mol-audit.runnerImagePullPolicy" . }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          envFrom:
+            - configMapRef:
+                name: {{ include "glassbox-mol-audit.fullname" . }}-config
+          env:
+            - name: GBX_CONTAINER_IMAGE
+              value: "{{ $runnerRepo }}:{{ $runnerTag }}"
+            {{- if $runnerDigest }}
+            - name: GBX_CONTAINER_IMAGE_DIGEST
+              value: "{{ $runnerDigest }}"
+            {{- end }}
+            {{ if .Values.marketplace.reportingSecret }}
+            - name: UBB_REPORTING_ENABLED
+              value: {{ ternary "true" "false" .Values.ubbagent.enabled | quote }}
+            - name: UBB_AGENT_HOST
+              value: "127.0.0.1"
+            - name: UBB_AGENT_PORT
+              value: {{ .Values.ubbagent.localPort | quote }}
+            - name: UBB_METRIC_NAME_STANDARD
+              value: {{ .Values.ubbagent.metricNameStandard | quote }}
+            - name: UBB_METRIC_NAME_DEEP
+              value: {{ .Values.ubbagent.metricNameDeep | quote }}
+            {{- if .Values.ubbagent.metricName }}
+            - name: UBB_METRIC_NAME
+              value: {{ .Values.ubbagent.metricName | quote }}
+            {{- end }}
+            - name: MARKETPLACE_REPORTING_SECRET
+              value: {{ .Values.marketplace.reportingSecret | quote }}
+            - name: MARKETPLACE_ENTITLEMENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.marketplace.reportingSecret | quote }}
+                  key: entitlement-id
+            - name: MARKETPLACE_CONSUMER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.marketplace.reportingSecret | quote }}
+                  key: consumer-id
+            {{ end }}
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              set -eu
+              echo "[glassbox-mol-audit] project=${PROJECT_ID} phase=${PHASE}"
+              # Route STDERR to STDOUT so Cloud Logging doesn't mark normal progress logs as ERROR.
+              exec python3 -m app.gbx_core_runner_v3 \
+                --project-id "${PROJECT_ID}" \
+                --input-root "${INPUT_PATH}" \
+                --output-dir "${OUTPUT_PATH}" 2>&1
+          volumeMounts:
+            - name: mol-audit-data
+              mountPath: {{ if eq .Values.storage.type "gcs" }}{{ .Values.storage.gcs.mountPath }}{{ else }}/data{{ end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if and .Values.ubbagent.enabled .Values.marketplace.reportingSecret }}
+        - name: ubbagent
+          {{- if .Values.ubbagent.image.digest }}
+          image: "{{ .Values.ubbagent.image.repository }}@{{ .Values.ubbagent.image.digest }}"
+          {{- else }}
+          image: "{{ .Values.ubbagent.image.repository }}:{{ .Values.ubbagent.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.ubbagent.image.pullPolicy }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: MARKETPLACE_CONSUMER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.marketplace.reportingSecret | quote }}
+                  key: consumer-id
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              set -euo pipefail
+              export MARKETPLACE_REPORTING_KEY_B64="$(base64 /var/marketplace/reporting-key | tr -d '\n')"
+              envsubst < /etc/ubbagent/config.yaml > /tmp/ubbagent-config.yaml
+              exec ubbagent --config /tmp/ubbagent-config.yaml --state-dir /var/ubbagent/state --local-port {{ .Values.ubbagent.localPort | quote }} -logtostderr -v 2
+          volumeMounts:
+            - name: ubbagent-config
+              mountPath: /etc/ubbagent/config.yaml
+              subPath: config.yaml
+            - name: ubbagent-state
+              mountPath: /var/ubbagent/state
+            - name: marketplace-reporting
+              mountPath: /var/marketplace
+              readOnly: true
+      {{- end }}
+      volumes:
+        - name: mol-audit-data
+          {{- if eq .Values.storage.type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ include "glassbox-mol-audit.fullname" . }}-data
+          {{- else if eq .Values.storage.type "gcs" }}
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: {{ .Values.storage.gcs.bucket | quote }}
+              implicitDirs: "true"
+              "implicit-dirs": "true"
+              mountOptions: "implicit-dirs"
+              gcsfuseOptions: "implicit-dirs"
+          {{- end }}
+        {{- if and .Values.ubbagent.enabled .Values.marketplace.reportingSecret }}
+        - name: ubbagent-config
+          configMap:
+            name: {{ include "glassbox-mol-audit.fullname" . }}-ubbagent
+        - name: ubbagent-state
+          emptyDir: {}
+        - name: marketplace-reporting
+          secret:
+            secretName: {{ .Values.marketplace.reportingSecret | quote }}
+        {{- end }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+{{- end }}

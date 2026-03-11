@@ -1,0 +1,102 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
+  tag: "2026.03.10-v0.6"
+  pullPolicy: IfNotPresent
+  digest: ""
+  standard:
+    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
+    tag: "2026.03.10-v0.6"
+    pullPolicy: IfNotPresent
+    digest: ""
+  deep:
+    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools
+    tag: "2026.03.10-v0.6"
+    pullPolicy: IfNotPresent
+    digest: ""
+
+config:
+  projectId: mol_audit_demo
+  runMode: standard
+  # Required when job.enabled=true. Must match the input evidence class.
+  categoryId: ""
+  inputPath: /data/input
+  outputPath: /data/output
+  runId: ""
+  failClosed: true
+  reproPackEnabled: true
+  entitlementUrl: https://glassbox-seal-662656813262.us-central1.run.app
+  # Optional: set to "auto"|"google"|"gcp"|"idtoken" to attach Authorization bearer token.
+  entitlementAuthMode: "google"
+  # Optional: explicit audience to mint the identity token for. Defaults to entitlementUrl.
+  entitlementAudience: "https://glassbox-seal-662656813262.us-central1.run.app"
+  TN_DISABLE_EXTERNAL_DATA: "0"
+  TN_ENABLE_UQ: "1"
+  TN_ENABLE_OT_FEATURES: "1"
+  standardModeQuiet: false
+
+marketplace:
+  reportingSecret: ""
+
+ubbagent:
+  enabled: false
+  image:
+    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
+    tag: "2026.03.10-v0.6"
+    pullPolicy: IfNotPresent
+    digest: ""
+  localPort: "4567"
+  # Legacy single-metric override. Leave empty for mode-aware metric selection.
+  metricName: ""
+  metricNameStandard: standard_audit_run
+  metricNameDeep: deep_audit_run
+  serviceName: molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
+
+resources:
+  requests:
+    cpu: "2"
+    memory: 8Gi
+  limits:
+    cpu: "4"
+    memory: 16Gi
+
+storage:
+  type: pvc
+  pvc:
+    storageClassName: standard
+    size: 50Gi
+  gcs:
+    bucket: ""
+    mountPath: /data
+    sidecarImage: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+workloadIdentity:
+  enabled: false
+  gcpServiceAccount: ""
+
+job:
+  enabled: false
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 21600
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+apptest:
+  enabled: false
+  image:
+    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
+    tag: "2026.03.10-v0.6"
+    pullPolicy: IfNotPresent
+    digest: ""

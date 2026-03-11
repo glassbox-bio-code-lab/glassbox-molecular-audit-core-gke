@@ -1,0 +1,14 @@
+storage:
+  type: gcs
+  gcs:
+    bucket: YOUR_BUCKET
+    mountPath: /data
+    sidecarImage: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+
+workloadIdentity:
+  enabled: true
+  gcpServiceAccount: your-sa@project.iam.gserviceaccount.com
+
+serviceAccount:
+  create: true
+  name: mol-audit-sa

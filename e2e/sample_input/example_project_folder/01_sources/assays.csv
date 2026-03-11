@@ -1,0 +1,2 @@
+compound_id,target_id,smiles,ic50_nm,pIC50
+CHEMBL941,CHEMBL1862,Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1,250.0,6.6

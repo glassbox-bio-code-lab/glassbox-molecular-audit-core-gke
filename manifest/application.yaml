@@ -1,0 +1,82 @@
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+  labels:
+    app.kubernetes.io/name: glassbox-mol-audit
+    app.kubernetes.io/instance: ${name}
+    app.kubernetes.io/part-of: glassbox-marketplace
+  annotations:
+    marketplace.cloud.google.com/deploy-info: '{"partner_id":"qzC12XfQZs","product_id":"glassbox-mol-audit","partner_name":"Glassbox Bio"}'
+spec:
+  descriptor:
+    type: glassbox-mol-audit
+    version: "1.0.0"
+    description: Deterministic computational validation dossier for target tractability (Glassbox Bio Molecular Audit).
+    maintainers:
+      - name: Glassbox Bio
+    keywords:
+      - computational validation
+      - ligandability
+      - docking
+      - reproducibility
+      - kubernetes
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: ${name}
+
+  addOwnerRef: true
+
+  componentKinds:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: Service
+    - group: apps
+      kind: Deployment
+    - group: batch
+      kind: Job
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+
+  notes: |-
+    ## Run via CLI
+
+    ```bash
+    helm upgrade --install ${NAME} ./manifest/chart \
+      --namespace ${NAMESPACE} --create-namespace \
+      -f ./manifest/chart/values-standard.yaml \
+      --set job.enabled=true \
+      --set image.digest=sha256:REPLACE_ME \
+      --set workloadIdentity.enabled=true \
+      --set workloadIdentity.gcpServiceAccount=your-sa@project.iam.gserviceaccount.com \
+      --set config.projectId=REPLACE_PROJECT_ID \
+      --set config.categoryId=REPLACE_CATEGORY_ID \
+      --set config.runId=run_$(date +%Y%m%dT%H%M%SZ)
+    ```
+
+    ## Monitor run
+
+    ```bash
+    kubectl -n ${NAMESPACE} get jobs
+    kubectl -n ${NAMESPACE} logs job/${NAME} --all-containers --timestamps -f
+    ```
+
+    ## Output retrieval
+
+    Outputs are written under the configured output path (default PVC path under `/data/output/<run_id>`).
+
+    Key artifacts:
+    - `results/summary.json`
+    - `results/phase_5_computational_safety.html`
+    - `results/phase_5_fastfail_summary.html`
+    - `results/phase_5_pipeline_analytics_snapshot.html`
+    - `seal/seal.json`

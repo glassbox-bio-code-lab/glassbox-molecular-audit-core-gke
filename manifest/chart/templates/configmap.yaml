@@ -1,0 +1,27 @@
+{{- /* yamllint disable rule:comments-indentation */ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "glassbox-mol-audit.fullname" . }}-config
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "glassbox-mol-audit.labels" . | nindent 4 }}
+data:
+  PROJECT_ID: {{ .Values.config.projectId | quote }}
+  GBX_RUN_MODE: {{ .Values.config.runMode | quote }}
+  GBX_CATEGORY_ID: {{ .Values.config.categoryId | quote }}
+  INPUT_PATH: {{ .Values.config.inputPath | quote }}
+  OUTPUT_PATH: {{ .Values.config.outputPath | quote }}
+  {{- if .Values.config.runId }}
+  # Optional deterministic run_id. The runner writes outputs under OUTPUT_PATH/<run_id>.
+  GBX_RUN_ID: {{ .Values.config.runId | quote }}
+  {{- end }}
+  FAIL_CLOSED: {{ .Values.config.failClosed | quote }}
+  REPRO_PACK_ENABLED: {{ .Values.config.reproPackEnabled | quote }}
+  GBX_ENTITLEMENT_URL: {{ .Values.config.entitlementUrl | quote }}
+  GBX_ENTITLEMENT_AUTH_MODE: {{ .Values.config.entitlementAuthMode | quote }}
+  GBX_ENTITLEMENT_AUDIENCE: {{ .Values.config.entitlementAudience | quote }}
+  TN_DISABLE_EXTERNAL_DATA: {{ .Values.config.TN_DISABLE_EXTERNAL_DATA | quote }}
+  TN_ENABLE_UQ: {{ .Values.config.TN_ENABLE_UQ | quote }}
+  TN_ENABLE_OT_FEATURES: {{ .Values.config.TN_ENABLE_OT_FEATURES | quote }}
+  GBX_STANDARD_MODE_QUIET: {{ .Values.config.standardModeQuiet | quote }}
