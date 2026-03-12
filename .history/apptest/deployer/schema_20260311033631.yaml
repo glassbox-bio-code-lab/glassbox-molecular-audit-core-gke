@@ -3,7 +3,7 @@ x-google-marketplace:
   applicationApiVersion: v1beta1
 
   # Not published directly; this schema is used only for Verification (/data-test overlay).
-  publishedVersion: "1.0.0"
+  publishedVersion: "1.0"
 
   images:
     "":
@@ -51,37 +51,38 @@ properties:
     x-google-marketplace:
       type: REPORTING_SECRET
 
+  # Defaults below make `mpdev verify` usable without passing parameters.
+  image.standard.repository:
+    type: string
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
+  image.standard.tag:
+    type: string
+    default: 1.0
+
+  image.deep.repository:
+    type: string
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
+  image.deep.tag:
+    type: string
+    default: 1.0
+
+  ubbagent.image.repository:
+    type: string
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
+  ubbagent.image.tag:
+    type: string
+    default: 1.0
+
+  apptest.image.repository:
+    type: string
+    default: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
+  apptest.image.tag:
+    type: string
+    default: 1.0
+
   config.projectId:
     type: string
     default: verification_project
-
-  config.runMode:
-    type: string
-    default: standard
-
-  config.categoryId:
-    type: string
-    default: SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ
-
-  config.failClosed:
-    type: boolean
-    default: false
-
-  config.standardModeQuiet:
-    type: boolean
-    default: true
-
-  storage.type:
-    type: string
-    default: pvc
-
-  storage.pvc.size:
-    type: string
-    default: 50Gi
-
-  storage.pvc.storageClassName:
-    type: string
-    default: ""
 
 required:
   - name

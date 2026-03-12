@@ -39,11 +39,32 @@ Billing model for this bundle:
 ## Deployer image
 
 Build the deployer image using `deployer/Dockerfile` and `make deployer-build`.
-`deployer/Dockerfile` copies:
+The Marketplace `deployer_helm` base image expects chart bundles as tarballs:
 
-- `manifest/` -> `/data/manifest/`
-- `schema.yaml` -> `/data/schema.yaml`
+- main chart bundle -> `/data/chart/chart-bundle.tar.gz`
+- verification overlay bundle -> `/data-test/chart/chart-bundle.tar.gz`
+- main schema -> `/data/schema.yaml`
+- verification schema -> `/data-test/schema.yaml`
 
-The deployer invokes Helm using `/data/schema.yaml` and
-`/data/manifest/application.yaml`. For release validation checks and required
-evidence, see `../docs/MARKETPLACE_REVIEW_CHECKLIST.md`.
+Both tarballs must extract a top-level `chart/` directory, and the main/test
+tarballs must share the same basename so the stock overlay step can merge
+`values.yaml` correctly during verification.
+
+## Runtime build assets
+
+The public repo includes the runtime Dockerfiles under `../deploy/`, but the
+runtime model/data bundles are intentionally not checked into git. Before local
+runtime image builds, fetch the canonical asset bundles into the Docker build
+context:
+
+```bash
+./deploy/fetch_assets.sh
+```
+
+That script populates:
+
+- `deploy/models`
+- `deploy/data`
+
+For release validation checks and required evidence, see
+`../docs/MARKETPLACE_REVIEW_CHECKLIST.md`.

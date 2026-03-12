@@ -3,17 +3,17 @@ fullnameOverride: ""
 
 image:
   repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
-  tag: "1.0.0"
+  tag: "1.0"
   pullPolicy: IfNotPresent
   digest: ""
   standard:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
-    tag: "1.0.0"
+    tag: "1.0"
     pullPolicy: IfNotPresent
     digest: ""
   deep:
-    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
-    tag: "1.0.0"
+    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools
+    tag: "1.0"
     pullPolicy: IfNotPresent
     digest: ""
 
@@ -32,8 +32,6 @@ config:
   entitlementAuthMode: "google"
   # Optional: explicit audience to mint the identity token for. Defaults to entitlementUrl.
   entitlementAudience: "https://glassbox-seal-662656813262.us-central1.run.app"
-  # Entitlement HTTP timeout in seconds. Verification can override this to fail fast.
-  entitlementTimeoutSec: "20"
   TN_DISABLE_EXTERNAL_DATA: "0"
   TN_ENABLE_UQ: "1"
   TN_ENABLE_OT_FEATURES: "1"
@@ -46,7 +44,7 @@ ubbagent:
   enabled: false
   image:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
-    tag: "1.0.0"
+    tag: "1.0"
     pullPolicy: IfNotPresent
     digest: ""
   localPort: "4567"
@@ -99,6 +97,6 @@ apptest:
   enabled: false
   image:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
-    tag: "1.0.0"
-    pullPolicy: Always
+    tag: "1.0"
+    pullPolicy: IfNotPresent
     digest: ""

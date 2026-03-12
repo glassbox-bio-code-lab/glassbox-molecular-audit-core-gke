@@ -7,10 +7,10 @@ CHART_DIR ?= ./manifest/chart
 STANDARD_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
 DEEP_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
 
-STANDARD_IMAGE_TAG ?= 1.0
-DEEP_IMAGE_TAG ?= 1.0
-STANDARD_IMAGE_DIGEST ?= sha256:02264d69d24130bb94f359c6560aae10f52b6b3798b5ed414908d2480bb0ec86
-DEEP_IMAGE_DIGEST ?= sha256:4c5f90845f678b584dd68d8dcf6e6071610fc8e16569d8f6be28313897bd08fd
+STANDARD_IMAGE_TAG ?= 1.0.0
+DEEP_IMAGE_TAG ?= 1.0.0
+STANDARD_IMAGE_DIGEST ?= sha256:c48760f3e5f089fe0c35f2f11c6d6c876b8cc210632913bef82b98537faae065
+DEEP_IMAGE_DIGEST ?= sha256:7754aa922cffe73963027d20d9b71aa0edcc015f1ae8445ec021b6032b84db28
 HELPER_IMAGE_REPO ?= alpine
 HELPER_IMAGE_TAG ?= 3.20
 HELPER_IMAGE_DIGEST ?=

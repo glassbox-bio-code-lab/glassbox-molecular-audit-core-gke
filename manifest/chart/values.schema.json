@@ -65,9 +65,34 @@
         "failClosed": { "type": "boolean" },
         "reproPackEnabled": { "type": "boolean" },
         "entitlementUrl": { "type": "string", "minLength": 1 },
-        "entitlementAuthMode": { "type": "string", "enum": ["", "auto", "google", "gcp", "idtoken", "principal"] }
+        "entitlementAuthMode": {
+          "type": "string",
+          "enum": [
+            "",
+            "auto",
+            "google",
+            "gcp",
+            "idtoken",
+            "principal",
+            "none",
+            "off",
+            "disabled"
+          ]
+        },
+        "entitlementTimeoutSec": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        }
       },
-      "required": ["projectId", "runMode", "inputPath", "outputPath", "failClosed", "reproPackEnabled", "entitlementUrl"],
+      "required": [
+        "projectId",
+        "runMode",
+        "inputPath",
+        "outputPath",
+        "failClosed",
+        "reproPackEnabled",
+        "entitlementUrl"
+      ],
       "additionalProperties": true
     },
     "marketplace": {
@@ -107,7 +132,14 @@
         "metricNameDeep": { "type": "string", "minLength": 1 },
         "serviceName": { "type": "string", "minLength": 1 }
       },
-      "required": ["enabled", "image", "localPort", "metricNameStandard", "metricNameDeep", "serviceName"],
+      "required": [
+        "enabled",
+        "image",
+        "localPort",
+        "metricNameStandard",
+        "metricNameDeep",
+        "serviceName"
+      ],
       "additionalProperties": true
     },
     "resources": {
@@ -160,7 +192,14 @@
       "additionalProperties": true
     }
   },
-  "required": ["image", "config", "marketplace", "ubbagent", "resources", "storage"],
+  "required": [
+    "image",
+    "config",
+    "marketplace",
+    "ubbagent",
+    "resources",
+    "storage"
+  ],
   "allOf": [
     {
       "if": {
