@@ -14,9 +14,9 @@ PROFILE_VALUES="${PROFILE_VALUES:-${CHART_DIR}/values-standard.yaml}" # add valu
 RUN_MODE="${RUN_MODE:-standard}" # "standard" or "deep"
 
 STANDARD_IMAGE_REPO="${STANDARD_IMAGE_REPO:-us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit}"
-DEEP_IMAGE_REPO="${DEEP_IMAGE_REPO:-us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools}"
+DEEP_IMAGE_REPO="${DEEP_IMAGE_REPO:-us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools}"
 IMAGE_REPO="${IMAGE_REPO:-}"
-IMAGE_TAG="${IMAGE_TAG:-1.0.0}"
+IMAGE_TAG="${IMAGE_TAG:-PUBLISHED_VERSION_TAG}"
 PROJECT_ID="${PROJECT_ID:-test}"
 CATEGORY_ID="${CATEGORY_ID:-SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ}"
 ENTITLEMENT_URL="${ENTITLEMENT_URL:-https://glassbox-seal-662656813262.us-central1.run.app}"
@@ -120,15 +120,15 @@ helm upgrade --install "${APP_NAME}" "${CHART_DIR}" \
   --set config.entitlementUrl="${ENTITLEMENT_URL}" \
   "${HELM_AUTH_ARGS[@]}"
 
-echo "[e2e] checking pvc ${PVC_NAME} (if using pvc storage)"
-kubectl -n "${NAMESPACE}" get pvc "${PVC_NAME}" >/dev/null 2>&1 || true
+echo "[e2e] waiting for pvc ${PVC_NAME} (if using pvc storage)"
+kubectl -n "${NAMESPACE}" get pvc "${PVC_NAME}" >/dev/null 2>&1 && \
+  kubectl -n "${NAMESPACE}" wait --for=jsonpath='{.status.phase}'=Bound "pvc/${PVC_NAME}" --timeout=5m || true
 
 # Prevent RWO PVC multi-attach if a previous run left the output reader pod around.
 kubectl -n "${NAMESPACE}" delete pod gbx-output-reader --ignore-not-found >/dev/null 2>&1 || true
 
 echo "[e2e] staging sample inputs into ${PVC_NAME} (PVC mode only)"
 if kubectl -n "${NAMESPACE}" get pvc "${PVC_NAME}" >/dev/null 2>&1; then
-  echo "[e2e] note: do not wait for PVC Bound here; WaitForFirstConsumer storage classes bind only after the helper pod mounts the claim"
   kubectl -n "${NAMESPACE}" delete pod gbx-input-writer --ignore-not-found
   kubectl -n "${NAMESPACE}" apply -f - <<YAML
 apiVersion: v1
