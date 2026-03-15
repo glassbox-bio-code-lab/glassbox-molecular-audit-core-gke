@@ -127,7 +127,7 @@ spec:
           {{- end }}
           imagePullPolicy: {{ .Values.ubbagent.image.pullPolicy }}
           securityContext:
-            runAsNonRoot: true
+            runAsUser: 0
             allowPrivilegeEscalation: false
             capabilities:
               drop:
@@ -144,7 +144,7 @@ spec:
           args:
             - |
               set -euo pipefail
-              export MARKETPLACE_REPORTING_KEY_B64="$(base64 /var/marketplace/reporting-key | tr -d '\n')"
+              export MARKETPLACE_REPORTING_KEY_B64="$(tr -d '\n' < /var/marketplace/reporting-key)"
               envsubst < /etc/ubbagent/config.yaml > /tmp/ubbagent-config.yaml
               exec ubbagent --config /tmp/ubbagent-config.yaml --state-dir /var/ubbagent/state --local-port {{ .Values.ubbagent.localPort | quote }} -logtostderr -v 2
           volumeMounts:

@@ -15,15 +15,18 @@ data:
     metrics:
       - name: {{ .Values.ubbagent.metricNameStandard | quote }}
         type: int
+        passthrough: {}
         endpoints:
           - name: servicecontrol
       - name: {{ .Values.ubbagent.metricNameDeep | quote }}
         type: int
+        passthrough: {}
         endpoints:
           - name: servicecontrol
       {{- if and .Values.ubbagent.metricName (ne .Values.ubbagent.metricName .Values.ubbagent.metricNameStandard) (ne .Values.ubbagent.metricName .Values.ubbagent.metricNameDeep) }}
       - name: {{ .Values.ubbagent.metricName | quote }}
         type: int
+        passthrough: {}
         endpoints:
           - name: servicecontrol
       {{- end }}

@@ -44,4 +44,11 @@ spec:
         - name: APP_RUNTIME_IMAGE
           value: "{{ $runnerRepo }}:{{ $runnerTag }}"
         {{- end }}
+        {{- if .Values.apptest.image.digest }}
+        - name: APP_IO_IMAGE
+          value: "{{ .Values.apptest.image.repository }}@{{ .Values.apptest.image.digest }}"
+        {{- else }}
+        - name: APP_IO_IMAGE
+          value: "{{ .Values.apptest.image.repository }}:{{ .Values.apptest.image.tag }}"
+        {{- end }}
 {{- end }}

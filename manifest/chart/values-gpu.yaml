@@ -3,9 +3,9 @@
 # deploy time so releases remain explicit and immutable.
 
 image:
-  repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools
+  repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
   deep:
-    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools
+    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
 
 config:
   runMode: deep

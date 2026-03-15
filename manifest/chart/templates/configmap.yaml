@@ -21,6 +21,7 @@ data:
   GBX_ENTITLEMENT_URL: {{ .Values.config.entitlementUrl | quote }}
   GBX_ENTITLEMENT_AUTH_MODE: {{ .Values.config.entitlementAuthMode | quote }}
   GBX_ENTITLEMENT_AUDIENCE: {{ .Values.config.entitlementAudience | quote }}
+  GBX_ENTITLEMENT_TIMEOUT_SEC: {{ .Values.config.entitlementTimeoutSec | quote }}
   TN_DISABLE_EXTERNAL_DATA: {{ .Values.config.TN_DISABLE_EXTERNAL_DATA | quote }}
   TN_ENABLE_UQ: {{ .Values.config.TN_ENABLE_UQ | quote }}
   TN_ENABLE_OT_FEATURES: {{ .Values.config.TN_ENABLE_OT_FEATURES | quote }}
