@@ -39,11 +39,7 @@ This directory is the public, customer-facing repository root for Google Cloud M
 
 Customer runtime uses identity-only entitlement checks. The Kubernetes Job authenticates to the hosted entitlement service with Workload Identity, and entitlement is resolved from the customer GSA principal. Customer deployments do not require a customer-managed entitlement token or any provisioning credential.
 
-Run all reviewer/customer commands from this directory:
-
-```bash
-cd github
-```
+Run all reviewer and customer commands from the repository root.
 
 ## Scope
 

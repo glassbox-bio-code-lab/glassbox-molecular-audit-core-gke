@@ -31,7 +31,7 @@ helm upgrade --install glassbox-mol-audit ./manifest/chart \
   --create-namespace \
   -f ./manifest/chart/values-standard.yaml \
   -f ./manifest/chart/values-gpu.yaml \
-  --set image.repository=us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools \
+  --set image.repository=us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools \
   --set image.digest=sha256:REPLACE_ME \
   --set config.runMode=deep
 ```
