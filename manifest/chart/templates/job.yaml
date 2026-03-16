@@ -5,7 +5,7 @@ metadata:
   name: {{ include "glassbox-mol-audit.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    {{- include "glassbox-mol-audit.labels" . | nindent 4 }}
+    {{- include "glassbox-mol-audit.podLabels" . | nindent 4 }}
 spec:
   backoffLimit: {{ .Values.job.backoffLimit }}
   ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "glassbox-mol-audit.labels" . | nindent 8 }}
+        {{- include "glassbox-mol-audit.podLabels" . | nindent 8 }}
       {{- if eq .Values.storage.type "gcs" }}
       annotations:
         gke-gcsfuse/volumes: "true"

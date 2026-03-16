@@ -41,6 +41,7 @@ config:
 
 marketplace:
   reportingSecret: ""
+  partnerSolutionLabel: "isol_plb32_001kf00001e8runiab_pwayyor5jqd3hikviwgqy5hwrx2hnpn5"
 
 ubbagent:
   enabled: false
@@ -102,3 +103,10 @@ apptest:
     tag: "1.0.0"
     pullPolicy: Always
     digest: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 128Mi
+    limits:
+      cpu: "250m"
+      memory: 256Mi

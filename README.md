@@ -67,6 +67,13 @@ Primary reviewer docs:
 - [Support matrix](./docs/SUPPORT_MATRIX.md)
 - [Input expectations](./docs/INPUT_EXPECTATIONS.md)
 
+Consumption tracking:
+
+- The Marketplace runtime pod templates include the required partner label:
+  - `goog-partner-solution=isol_plb32_001kf00001e8runiab_pwayyor5jqd3hikviwgqy5hwrx2hnpn5`
+- The standard/deep audit Job pods also declare explicit resource requests and limits.
+- The verification tester pod also carries the same pod-level consumption label and explicit resources.
+
 ## Local Runtime Image Builds
 
 The published runtime images already include the required `models/` and `data/`

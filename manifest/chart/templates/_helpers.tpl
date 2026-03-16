@@ -16,6 +16,18 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/part-of: glassbox-marketplace
 {{- end -}}
 
+{{- define "glassbox-mol-audit.partnerSolutionLabel" -}}
+{{- default "isol_plb32_001kf00001e8runiab_pwayyor5jqd3hikviwgqy5hwrx2hnpn5" .Values.marketplace.partnerSolutionLabel -}}
+{{- end -}}
+
+{{- define "glassbox-mol-audit.podLabels" -}}
+{{- include "glassbox-mol-audit.labels" . }}
+{{- $partnerLabel := include "glassbox-mol-audit.partnerSolutionLabel" . | trim -}}
+{{- if $partnerLabel }}
+goog-partner-solution: {{ $partnerLabel | quote }}
+{{- end }}
+{{- end -}}
+
 {{- define "glassbox-mol-audit.serviceAccountName" -}}
 {{- if .Values.serviceAccount.name -}}
 {{- .Values.serviceAccount.name -}}
