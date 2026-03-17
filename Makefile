@@ -4,8 +4,8 @@ APP_NAME ?= glassbox-mol-audit
 NAMESPACE ?= glassbox-mol-audit
 CHART_DIR ?= ./manifest/chart
 
-STANDARD_IMAGE_REPO ?=
-DEEP_IMAGE_REPO ?=
+STANDARD_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
+DEEP_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
 
 STANDARD_IMAGE_TAG ?= 1.0.0
 DEEP_IMAGE_TAG ?= 1.0.0
@@ -20,7 +20,7 @@ RUN_MODE ?= standard
 CATEGORY_ID ?=
 RUN_ID ?=
 
-ENTITLEMENT_URL ?=
+ENTITLEMENT_URL ?= https://glassbox-seal-662656813262.us-central1.run.app
 ENTITLEMENT_AUTH_MODE ?= google
 ENTITLEMENT_AUDIENCE ?= $(ENTITLEMENT_URL)
 GCP_REGION ?=
@@ -29,7 +29,7 @@ DATA_RESIDENCY ?= strict
 EGRESS_MODE ?= STRICT_LOCAL
 OPTIONAL_ANALYTICS ?= false
 ALLOWED_EGRESS_DOMAINS ?=
-WORKLOAD_IDENTITY_GSA ?=  
+WORKLOAD_IDENTITY_GSA ?=
 MARKETPLACE_REPORTING_SECRET ?=
 UBBAGENT_IMAGE_REPO ?=
 UBBAGENT_IMAGE_TAG ?= 1.0.0
@@ -334,11 +334,11 @@ fetch-manifest-output-deep:
 customer-run-standard:
 	@$(MAKE) deploy-manifest-infra-standard WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)"
 	@$(MAKE) stage-manifest-input-standard PROJECT_ID="$(PROJECT_ID)"
-	@$(MAKE) deploy-manifest-job-standard PROJECT_ID="$(PROJECT_ID)" CATEGORY_ID="$(CATEGORY_ID)" WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)"
+	@$(MAKE) deploy-manifest-job-standard PROJECT_ID="$(PROJECT_ID)" CATEGORY_ID="$(CATEGORY_ID)" WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)" MARKETPLACE_REPORTING_SECRET="$(MARKETPLACE_REPORTING_SECRET)" UBBAGENT_IMAGE_REPO="$(UBBAGENT_IMAGE_REPO)" UBBAGENT_IMAGE_TAG="$(UBBAGENT_IMAGE_TAG)" UBBAGENT_IMAGE_DIGEST="$(UBBAGENT_IMAGE_DIGEST)"
 	@$(MAKE) fetch-manifest-output-standard
 
 customer-run-deep:
 	@$(MAKE) deploy-manifest-infra-deep WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)"
 	@$(MAKE) stage-manifest-input-deep PROJECT_ID="$(PROJECT_ID)"
-	@$(MAKE) deploy-manifest-job-deep PROJECT_ID="$(PROJECT_ID)" CATEGORY_ID="$(CATEGORY_ID)" WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)"
+	@$(MAKE) deploy-manifest-job-deep PROJECT_ID="$(PROJECT_ID)" CATEGORY_ID="$(CATEGORY_ID)" WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)" MARKETPLACE_REPORTING_SECRET="$(MARKETPLACE_REPORTING_SECRET)" UBBAGENT_IMAGE_REPO="$(UBBAGENT_IMAGE_REPO)" UBBAGENT_IMAGE_TAG="$(UBBAGENT_IMAGE_TAG)" UBBAGENT_IMAGE_DIGEST="$(UBBAGENT_IMAGE_DIGEST)"
 	@$(MAKE) fetch-manifest-output-deep

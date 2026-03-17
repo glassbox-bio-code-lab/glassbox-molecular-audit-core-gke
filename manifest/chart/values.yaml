@@ -51,6 +51,7 @@ marketplace:
   # Required for supported Marketplace-metered deployments. Leave empty only for
   # bare chart inspection or local non-metered validation paths.
   reportingSecret: ""
+  partnerSolutionLabel: "isol_plb32_001kf00001e8runiab_pwayyor5jqd3hikviwgqy5hwrx2hnpn5"
 
 ubbagent:
   # Bare chart defaults keep this off until Marketplace reporting inputs and
@@ -115,3 +116,10 @@ apptest:
     tag: "1.0.0"
     pullPolicy: Always
     digest: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 128Mi
+    limits:
+      cpu: "250m"
+      memory: 256Mi

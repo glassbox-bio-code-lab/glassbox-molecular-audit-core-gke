@@ -1,0 +1,43 @@
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: {{ include "glassbox-mol-audit.fullname" . | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "glassbox-mol-audit.labels" . | nindent 4 }}
+  annotations:
+    marketplace.cloud.google.com/deploy-info: '{"partner_id":"qzC12XfQZs","product_id":"glassbox-mol-audit","partner_name":"Glassbox Bio"}'
+spec:
+  descriptor:
+    type: glassbox-mol-audit
+    version: {{ .Chart.AppVersion | quote }}
+    description: Deterministic computational validation dossier for target tractability (Glassbox Bio Molecular Audit).
+    maintainers:
+      - name: Glassbox Bio
+    keywords:
+      - computational validation
+      - ligandability
+      - docking
+      - reproducibility
+      - kubernetes
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  addOwnerRef: true
+  componentKinds:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: Service
+    - group: batch
+      kind: Job
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+    - group: rbac.authorization.k8s.io
+      kind: ServiceAccount

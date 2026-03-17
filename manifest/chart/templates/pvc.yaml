@@ -12,5 +12,8 @@ spec:
   resources:
     requests:
       storage: {{ .Values.storage.pvc.size | quote }}
-  storageClassName: {{ .Values.storage.pvc.storageClassName | quote }}
+  {{- $storageClassName := .Values.storage.pvc.storageClassName | trim }}
+  {{- if $storageClassName }}
+  storageClassName: {{ $storageClassName | quote }}
+  {{- end }}
 {{- end }}

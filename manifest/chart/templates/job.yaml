@@ -5,7 +5,7 @@ metadata:
   name: {{ include "glassbox-mol-audit.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    {{- include "glassbox-mol-audit.labels" . | nindent 4 }}
+    {{- include "glassbox-mol-audit.podLabels" . | nindent 4 }}
 spec:
   backoffLimit: {{ .Values.job.backoffLimit }}
   ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "glassbox-mol-audit.labels" . | nindent 8 }}
+        {{- include "glassbox-mol-audit.podLabels" . | nindent 8 }}
       {{- if eq .Values.storage.type "gcs" }}
       annotations:
         gke-gcsfuse/volumes: "true"
@@ -78,7 +78,7 @@ spec:
               value: {{ .Release.Namespace | quote }}
             - name: GBX_RELEASE_NAME
               value: {{ .Release.Name | quote }}
-            {{ if .Values.marketplace.reportingSecret }}
+            {{- if .Values.marketplace.reportingSecret }}
             - name: UBB_REPORTING_ENABLED
               value: {{ ternary "true" "false" .Values.ubbagent.enabled | quote }}
             - name: UBB_AGENT_HOST
@@ -105,7 +105,7 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.marketplace.reportingSecret | quote }}
                   key: consumer-id
-            {{ end }}
+            {{- end }}
           command:
             - /bin/sh
             - -c
@@ -149,7 +149,7 @@ spec:
           args:
             - |
               set -euo pipefail
-              export MARKETPLACE_REPORTING_KEY_B64="$(base64 /var/marketplace/reporting-key | tr -d '\n')"
+              export MARKETPLACE_REPORTING_KEY_B64="$(tr -d '\n' < /var/marketplace/reporting-key)"
               envsubst < /etc/ubbagent/config.yaml > /tmp/ubbagent-config.yaml
               exec ubbagent --config /tmp/ubbagent-config.yaml --state-dir /var/ubbagent/state --local-port {{ .Values.ubbagent.localPort | quote }} -logtostderr -v 2
           volumeMounts:

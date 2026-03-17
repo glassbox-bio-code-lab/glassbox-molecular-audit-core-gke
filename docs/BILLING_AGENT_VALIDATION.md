@@ -60,6 +60,10 @@ The runner now logs the enforced contract at report time:
 ## Notes
 
 - This validation covers deterministic runner-side contract enforcement and emission logic.
+- Marketplace partner-consumption tracking is separate from UBB usage reporting.
+- The shipped Kubernetes pod templates are now labeled with:
+  - `goog-partner-solution=isol_plb32_001kf00001e8runiab_pwayyor5jqd3hikviwgqy5hwrx2hnpn5`
+- The runtime Job pod and verification tester pod both declare explicit resource requests and limits for support verification.
 - For final go-live evidence, run one Standard and one Deep deployment with UBB sidecar enabled and confirm:
   - `run_manifest.json` contains the expected `ubbagent_metric`
   - Marketplace telemetry receives exactly one matching metric event per run
