@@ -132,7 +132,7 @@ spec:
           {{- end }}
           imagePullPolicy: {{ .Values.ubbagent.image.pullPolicy }}
           securityContext:
-            runAsNonRoot: true
+            runAsUser: 0
             allowPrivilegeEscalation: false
             capabilities:
               drop:
