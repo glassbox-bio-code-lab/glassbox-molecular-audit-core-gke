@@ -1,11 +1,6 @@
 # Deep/GPU overlay selects the deep runtime by default and applies the required
-# GPU resources/scheduling. Tags and digests should still be overridden at
-# deploy time so releases remain explicit and immutable.
-
-image:
-  repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools
-  deep:
-    repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit-deep-tools
+# GPU resources/scheduling. Image repository, tag, and digest should still be
+# set explicitly at deploy time so releases remain region-aware and immutable.
 
 config:
   runMode: deep

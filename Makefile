@@ -4,8 +4,8 @@ APP_NAME ?= glassbox-mol-audit
 NAMESPACE ?= glassbox-mol-audit
 CHART_DIR ?= ./manifest/chart
 
-STANDARD_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
-DEEP_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
+STANDARD_IMAGE_REPO ?=
+DEEP_IMAGE_REPO ?=
 
 STANDARD_IMAGE_TAG ?= 1.0.0
 DEEP_IMAGE_TAG ?= 1.0.0
@@ -20,10 +20,20 @@ RUN_MODE ?= standard
 CATEGORY_ID ?=
 RUN_ID ?=
 
-ENTITLEMENT_URL ?= https://glassbox-seal-662656813262.us-central1.run.app
+ENTITLEMENT_URL ?=
 ENTITLEMENT_AUTH_MODE ?= google
 ENTITLEMENT_AUDIENCE ?= $(ENTITLEMENT_URL)
+GCP_REGION ?=
+GCP_LOCATION ?= $(GCP_REGION)
+DATA_RESIDENCY ?= strict
+EGRESS_MODE ?= STRICT_LOCAL
+OPTIONAL_ANALYTICS ?= false
+ALLOWED_EGRESS_DOMAINS ?=
 WORKLOAD_IDENTITY_GSA ?=  
+MARKETPLACE_REPORTING_SECRET ?=
+UBBAGENT_IMAGE_REPO ?=
+UBBAGENT_IMAGE_TAG ?= 1.0.0
+UBBAGENT_IMAGE_DIGEST ?=
 
 PVC_NAME ?= glassbox-mol-audit-data
 PVC_LOADER_POD ?= pvc-loader
@@ -34,54 +44,62 @@ RUN_ID_FILE_STANDARD ?= ./.last_manifest_run_id.standard
 RUN_ID_FILE_DEEP ?= ./.last_manifest_run_id.deep
 
 .PHONY: help \
-		review-preflight \
-		reviewer-run-standard reviewer-run-deep \
+		bundle-preflight \
+		customer-run-standard customer-run-deep \
 		deploy-manifest-infra stage-manifest-input deploy-manifest-job fetch-manifest-output \
 		deploy-manifest-infra-standard stage-manifest-input-standard deploy-manifest-job-standard fetch-manifest-output-standard \
 		deploy-manifest-infra-deep stage-manifest-input-deep deploy-manifest-job-deep fetch-manifest-output-deep
 
 help:
-	@echo "Reviewer workflow (generic):"
+	@echo "Customer workflow (generic):"
 	@echo "  make deploy-manifest-infra RUN_MODE=<standard|deep> [STANDARD_IMAGE_TAG=<tag>|STANDARD_IMAGE_DIGEST=<sha>] [DEEP_IMAGE_TAG=<tag>|DEEP_IMAGE_DIGEST=<sha>]"
 	@echo "  make stage-manifest-input PROJECT_ID=<id> RUN_MODE=<standard|deep>"
-	@echo "  make deploy-manifest-job PROJECT_ID=<id> RUN_MODE=<standard|deep> CATEGORY_ID=<category> WORKLOAD_IDENTITY_GSA=<gsa>"
+	@echo "  make deploy-manifest-job PROJECT_ID=<id> RUN_MODE=<standard|deep> CATEGORY_ID=<category> WORKLOAD_IDENTITY_GSA=<gsa> MARKETPLACE_REPORTING_SECRET=<secret> UBBAGENT_IMAGE_REPO=<repo>"
 	@echo "  make fetch-manifest-output RUN_MODE=<standard|deep>"
 	@echo ""
-	@echo "Reviewer workflow (standard):"
-	@echo "  make reviewer-run-standard PROJECT_ID=<id> CATEGORY_ID=<category> STANDARD_IMAGE_DIGEST=<sha256:...> WORKLOAD_IDENTITY_GSA=<gsa>"
+	@echo "Customer workflow (standard):"
+	@echo "  make customer-run-standard PROJECT_ID=<id> CATEGORY_ID=<category> STANDARD_IMAGE_DIGEST=<sha256:...> WORKLOAD_IDENTITY_GSA=<gsa> MARKETPLACE_REPORTING_SECRET=<secret> UBBAGENT_IMAGE_REPO=<repo>"
 	@echo "    # runs infra, stages input, waits for job completion, then downloads outputs"
 	@echo ""
 	@echo "  make deploy-manifest-infra-standard STANDARD_IMAGE_TAG=<tag>|STANDARD_IMAGE_DIGEST=<sha256:...>"
 	@echo "  make stage-manifest-input-standard PROJECT_ID=<id>"
-	@echo "  make deploy-manifest-job-standard PROJECT_ID=<id> CATEGORY_ID=<category> WORKLOAD_IDENTITY_GSA=<gsa>"
+	@echo "  make deploy-manifest-job-standard PROJECT_ID=<id> CATEGORY_ID=<category> WORKLOAD_IDENTITY_GSA=<gsa> MARKETPLACE_REPORTING_SECRET=<secret> UBBAGENT_IMAGE_REPO=<repo>"
 	@echo "  make fetch-manifest-output-standard"
 	@echo ""
-	@echo "Reviewer workflow (deep):"
-	@echo "  make reviewer-run-deep PROJECT_ID=<id> CATEGORY_ID=<category> DEEP_IMAGE_DIGEST=<sha256:...> WORKLOAD_IDENTITY_GSA=<gsa>"
+	@echo "Customer workflow (deep):"
+	@echo "  make customer-run-deep PROJECT_ID=<id> CATEGORY_ID=<category> DEEP_IMAGE_DIGEST=<sha256:...> WORKLOAD_IDENTITY_GSA=<gsa> MARKETPLACE_REPORTING_SECRET=<secret> UBBAGENT_IMAGE_REPO=<repo>"
 	@echo "    # runs infra, stages input, waits for job completion, then downloads outputs"
 	@echo ""
 	@echo "  make deploy-manifest-infra-deep DEEP_IMAGE_TAG=<tag>|DEEP_IMAGE_DIGEST=<sha256:...>"
 	@echo "  make stage-manifest-input-deep PROJECT_ID=<id>"
-	@echo "  make deploy-manifest-job-deep PROJECT_ID=<id> CATEGORY_ID=<category> WORKLOAD_IDENTITY_GSA=<gsa>"
+	@echo "  make deploy-manifest-job-deep PROJECT_ID=<id> CATEGORY_ID=<category> WORKLOAD_IDENTITY_GSA=<gsa> MARKETPLACE_REPORTING_SECRET=<secret> UBBAGENT_IMAGE_REPO=<repo>"
 	@echo "  make fetch-manifest-output-deep"
 	@echo ""
-	@echo "Preflight:"
-	@echo "  make review-preflight"
+	@echo "Bundle validation:"
+	@echo "  make bundle-preflight"
 	@echo ""
 	@echo "Optional:"
-	@echo "  RUN_ID=<custom-run-id>      # otherwise reviewer_<mode>_<timestamp> is used"
+	@echo "  RUN_ID=<custom-run-id>      # otherwise customer_<mode>_<timestamp> is used"
 
-review-preflight:
+bundle-preflight:
 	@echo "[preflight] Helm lint"
 	@helm lint "$(CHART_DIR)"
 	@echo "[preflight] Helm template (default)"
-	@helm template review-default "$(CHART_DIR)" >/dev/null
+	@helm template bundle-default "$(CHART_DIR)" >/dev/null
 	@echo "[preflight] Helm template (standard profile)"
-	@helm template review-standard "$(CHART_DIR)" -f "$(CHART_DIR)/values-standard.yaml" >/dev/null
+	@helm template bundle-standard "$(CHART_DIR)" -f "$(CHART_DIR)/values-standard.yaml" >/dev/null
 	@echo "[preflight] Helm template (deep profile)"
-	@helm template review-deep "$(CHART_DIR)" -f "$(CHART_DIR)/values-standard.yaml" -f "$(CHART_DIR)/values-gpu.yaml" >/dev/null
+	@helm template bundle-deep "$(CHART_DIR)" -f "$(CHART_DIR)/values-standard.yaml" -f "$(CHART_DIR)/values-gpu.yaml" >/dev/null
 	@echo "[preflight] Helm template (job enabled + required category)"
-	@helm template review-job "$(CHART_DIR)" -f "$(CHART_DIR)/values-standard.yaml" --set job.enabled=true --set config.categoryId=SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ >/dev/null
+	@helm template bundle-job "$(CHART_DIR)" -f "$(CHART_DIR)/values-standard.yaml" \
+		--set job.enabled=true \
+		--set image.repository=example.invalid/glassbox-mol-audit \
+		--set config.categoryId=SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ \
+		--set config.gcpRegion=us-central1 \
+		--set config.entitlementUrl=https://example.invalid/entitlement \
+		--set ubbagent.enabled=true \
+		--set marketplace.reportingSecret=marketplace-reporting-secret \
+		--set ubbagent.image.repository=example.invalid/ubbagent >/dev/null
 	@echo "[preflight] Shell syntax"
 	@find . -type f -name '*.sh' -print0 | xargs -0 -r bash -n
 	@echo "[preflight] CRLF guard for shell scripts"
@@ -93,14 +111,14 @@ review-preflight:
 	@echo "[preflight] Required customer docs"
 	@test -f ./docs/RUNBOOK_CUSTOMER.md
 	@test -f ./docs/SUPPORT_MATRIX.md
-	@echo "[preflight] Required internal release docs"
-	@test -f ../docs/MARKETPLACE_REVIEW_CHECKLIST.md
 	@echo "[preflight] Required sample input bundle"
 	@test -f ./e2e/sample_input/test/01_sources/sources.json
 	@test -f ./e2e/sample_input/test/01_sources/portfolio_selected.csv
 	@echo "[preflight] PASS"
 
 deploy-manifest-infra:
+	@if [ -z "$(GCP_REGION)" ]; then echo "ERROR: GCP_REGION is required"; exit 2; fi
+	@if [ -z "$(ENTITLEMENT_URL)" ]; then echo "ERROR: ENTITLEMENT_URL is required"; exit 2; fi
 	@IMAGE_REPO_RESOLVED="$(STANDARD_IMAGE_REPO)"; \
 	IMAGE_TAG_RESOLVED="$(STANDARD_IMAGE_TAG)"; \
 	IMAGE_DIGEST_RESOLVED="$(STANDARD_IMAGE_DIGEST)"; \
@@ -131,6 +149,12 @@ deploy-manifest-infra:
 		--set job.enabled=false \
 		$$STORAGE_ARGS \
 		$$IMAGE_ARGS \
+		--set-string config.gcpRegion="$(GCP_REGION)" \
+		--set-string config.gcpLocation="$(GCP_LOCATION)" \
+		--set-string config.dataResidency="$(DATA_RESIDENCY)" \
+		--set-string config.egressMode="$(EGRESS_MODE)" \
+		--set config.optionalAnalytics="$(OPTIONAL_ANALYTICS)" \
+		--set-string config.allowedEgressDomains="$(ALLOWED_EGRESS_DOMAINS)" \
 		--set-string config.entitlementUrl="$(ENTITLEMENT_URL)" \
 		--set-string config.entitlementAuthMode="$(ENTITLEMENT_AUTH_MODE)" \
 		--set-string config.entitlementAudience="$(ENTITLEMENT_AUDIENCE)" \
@@ -179,10 +203,17 @@ deploy-manifest-job:
 	@if [ -z "$(PROJECT_ID)" ]; then echo "ERROR: PROJECT_ID is required"; exit 2; fi
 	@if [ -z "$(CATEGORY_ID)" ]; then echo "ERROR: CATEGORY_ID is required"; exit 2; fi
 	@if [ -z "$(WORKLOAD_IDENTITY_GSA)" ]; then echo "ERROR: WORKLOAD_IDENTITY_GSA is required"; exit 2; fi
-	@RUN_ID="$${RUN_ID:-reviewer_$(RUN_MODE)_$$(date -u +%Y%m%dT%H%M%SZ)}"; \
+	@if [ -z "$(GCP_REGION)" ]; then echo "ERROR: GCP_REGION is required"; exit 2; fi
+	@if [ -z "$(ENTITLEMENT_URL)" ]; then echo "ERROR: ENTITLEMENT_URL is required"; exit 2; fi
+	@if [ -z "$(MARKETPLACE_REPORTING_SECRET)" ]; then echo "ERROR: MARKETPLACE_REPORTING_SECRET is required for customer deployments"; exit 2; fi
+	@if [ -z "$(UBBAGENT_IMAGE_REPO)" ]; then echo "ERROR: UBBAGENT_IMAGE_REPO is required for customer deployments"; exit 2; fi
+	@RUN_ID="$${RUN_ID:-customer_$(RUN_MODE)_$$(date -u +%Y%m%dT%H%M%SZ)}"; \
 	IMAGE_REPO_RESOLVED="$(STANDARD_IMAGE_REPO)"; \
 	IMAGE_TAG_RESOLVED="$(STANDARD_IMAGE_TAG)"; \
 	IMAGE_DIGEST_RESOLVED="$(STANDARD_IMAGE_DIGEST)"; \
+	UBB_IMAGE_REPO_RESOLVED="$(UBBAGENT_IMAGE_REPO)"; \
+	UBB_IMAGE_TAG_RESOLVED="$(UBBAGENT_IMAGE_TAG)"; \
+	UBB_IMAGE_DIGEST_RESOLVED="$(UBBAGENT_IMAGE_DIGEST)"; \
 	if [ "$(RUN_MODE)" = "deep" ]; then \
 		IMAGE_REPO_RESOLVED="$(DEEP_IMAGE_REPO)"; \
 		IMAGE_TAG_RESOLVED="$(DEEP_IMAGE_TAG)"; \
@@ -201,6 +232,8 @@ deploy-manifest-job:
 		PVC_SIZE="$$(kubectl -n "$(NAMESPACE)" get pvc "$(PVC_NAME)" -o jsonpath='{.status.capacity.storage}')"; \
 		STORAGE_ARGS="--set-string storage.pvc.storageClassName=$$PVC_SC --set-string storage.pvc.size=$$PVC_SIZE"; \
 	fi; \
+	UBB_ARGS="--set ubbagent.enabled=true --set-string marketplace.reportingSecret=$(MARKETPLACE_REPORTING_SECRET) --set-string ubbagent.image.repository=$$UBB_IMAGE_REPO_RESOLVED"; \
+	if [ -n "$$UBB_IMAGE_DIGEST_RESOLVED" ]; then UBB_ARGS="$$UBB_ARGS --set-string ubbagent.image.digest=$$UBB_IMAGE_DIGEST_RESOLVED"; else UBB_ARGS="$$UBB_ARGS --set-string ubbagent.image.tag=$$UBB_IMAGE_TAG_RESOLVED"; fi; \
 	IMAGE_ARGS="--set image.repository=$$IMAGE_REPO_RESOLVED"; \
 	if [ -n "$$IMAGE_DIGEST_RESOLVED" ]; then IMAGE_ARGS="$$IMAGE_ARGS --set image.digest=$$IMAGE_DIGEST_RESOLVED"; else IMAGE_ARGS="$$IMAGE_ARGS --set image.tag=$$IMAGE_TAG_RESOLVED"; fi; \
 	kubectl -n "$(NAMESPACE)" delete pod "$(PVC_LOADER_POD)" --ignore-not-found; \
@@ -212,7 +245,14 @@ deploy-manifest-job:
 		--set job.enabled=true \
 		$$STORAGE_ARGS \
 		$$IMAGE_ARGS \
+		$$UBB_ARGS \
 		--set-string config.projectId="$(PROJECT_ID)" \
+		--set-string config.gcpRegion="$(GCP_REGION)" \
+		--set-string config.gcpLocation="$(GCP_LOCATION)" \
+		--set-string config.dataResidency="$(DATA_RESIDENCY)" \
+		--set-string config.egressMode="$(EGRESS_MODE)" \
+		--set config.optionalAnalytics="$(OPTIONAL_ANALYTICS)" \
+		--set-string config.allowedEgressDomains="$(ALLOWED_EGRESS_DOMAINS)" \
 		--set-string config.runMode="$(RUN_MODE)" \
 		--set-string config.runId="$$RUN_ID" \
 		--set-string config.categoryId="$(CATEGORY_ID)" \
@@ -291,13 +331,13 @@ deploy-manifest-job-deep:
 fetch-manifest-output-deep:
 	@$(MAKE) fetch-manifest-output RUN_MODE=deep RUN_ID_FILE="$(RUN_ID_FILE_DEEP)"
 
-reviewer-run-standard:
+customer-run-standard:
 	@$(MAKE) deploy-manifest-infra-standard WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)"
 	@$(MAKE) stage-manifest-input-standard PROJECT_ID="$(PROJECT_ID)"
 	@$(MAKE) deploy-manifest-job-standard PROJECT_ID="$(PROJECT_ID)" CATEGORY_ID="$(CATEGORY_ID)" WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)"
 	@$(MAKE) fetch-manifest-output-standard
 
-reviewer-run-deep:
+customer-run-deep:
 	@$(MAKE) deploy-manifest-infra-deep WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)"
 	@$(MAKE) stage-manifest-input-deep PROJECT_ID="$(PROJECT_ID)"
 	@$(MAKE) deploy-manifest-job-deep PROJECT_ID="$(PROJECT_ID)" CATEGORY_ID="$(CATEGORY_ID)" WORKLOAD_IDENTITY_GSA="$(WORKLOAD_IDENTITY_GSA)"

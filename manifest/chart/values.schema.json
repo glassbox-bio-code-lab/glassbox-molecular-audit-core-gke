@@ -6,7 +6,7 @@
     "image": {
       "type": "object",
       "properties": {
-        "repository": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string" },
         "tag": { "type": "string" },
         "digest": {
           "type": "string",
@@ -19,7 +19,7 @@
         "standard": {
           "type": "object",
           "properties": {
-            "repository": { "type": "string", "minLength": 1 },
+            "repository": { "type": "string" },
             "tag": { "type": "string" },
             "digest": {
               "type": "string",
@@ -36,7 +36,7 @@
         "deep": {
           "type": "object",
           "properties": {
-            "repository": { "type": "string", "minLength": 1 },
+            "repository": { "type": "string" },
             "tag": { "type": "string" },
             "digest": {
               "type": "string",
@@ -51,7 +51,7 @@
           "additionalProperties": true
         }
       },
-      "required": ["repository", "tag", "pullPolicy"],
+      "required": ["tag", "pullPolicy"],
       "additionalProperties": true
     },
     "config": {
@@ -59,12 +59,27 @@
       "properties": {
         "projectId": { "type": "string", "minLength": 1 },
         "runMode": { "type": "string", "enum": ["standard", "deep"] },
+        "gcpRegion": { "type": "string" },
+        "gcpLocation": { "type": "string" },
+        "dataResidency": {
+          "type": "string",
+          "enum": ["strict", "project_local", "permissive"]
+        },
+        "egressMode": {
+          "type": "string",
+          "enum": ["STRICT_LOCAL", "ALLOW_GCP_ONLY", "ALLOW_EXTERNAL"]
+        },
+        "optionalAnalytics": { "type": "boolean" },
+        "allowedEgressDomains": { "type": "string" },
+        "regionTraceability": { "type": "boolean" },
+        "timezone": { "type": "string", "minLength": 1 },
         "categoryId": { "type": "string" },
         "inputPath": { "type": "string", "minLength": 1 },
         "outputPath": { "type": "string", "minLength": 1 },
         "failClosed": { "type": "boolean" },
         "reproPackEnabled": { "type": "boolean" },
-        "entitlementUrl": { "type": "string", "minLength": 1 },
+        "entitlementUrl": { "type": "string" },
+        "entitlementAudience": { "type": "string" },
         "entitlementAuthMode": {
           "type": "string",
           "enum": [
@@ -109,7 +124,7 @@
         "image": {
           "type": "object",
           "properties": {
-            "repository": { "type": "string", "minLength": 1 },
+            "repository": { "type": "string" },
             "tag": { "type": "string" },
             "digest": {
               "type": "string",
@@ -214,11 +229,37 @@
       },
       "then": {
         "properties": {
+          "image": {
+            "properties": {
+              "repository": { "type": "string", "minLength": 1 }
+            },
+            "required": ["repository"]
+          },
           "config": {
             "properties": {
-              "categoryId": { "type": "string", "minLength": 1 }
+              "categoryId": { "type": "string", "minLength": 1 },
+              "entitlementUrl": { "type": "string", "minLength": 1 },
+              "gcpRegion": { "type": "string", "minLength": 1 }
             },
-            "required": ["categoryId"]
+            "required": ["categoryId", "entitlementUrl", "gcpRegion"]
+          },
+          "marketplace": {
+            "properties": {
+              "reportingSecret": { "type": "string", "minLength": 1 }
+            },
+            "required": ["reportingSecret"]
+          },
+          "ubbagent": {
+            "properties": {
+              "enabled": { "const": true },
+              "image": {
+                "properties": {
+                  "repository": { "type": "string", "minLength": 1 }
+                },
+                "required": ["repository"]
+              }
+            },
+            "required": ["enabled", "image"]
           }
         }
       }
@@ -243,6 +284,32 @@
                   "bucket": { "type": "string", "minLength": 1 }
                 },
                 "required": ["bucket"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "ubbagent": {
+            "properties": {
+              "enabled": { "const": true }
+            },
+            "required": ["enabled"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ubbagent": {
+            "properties": {
+              "image": {
+                "properties": {
+                  "repository": { "type": "string", "minLength": 1 }
+                },
+                "required": ["repository"]
               }
             }
           }

@@ -1,7 +1,7 @@
 # Customer Runbook (Marketplace Helm Deployment)
 
 This runbook is the customer-facing operator flow for deploying and running
-Glassbox Bio Molecular Audit from the `github/` repository root.
+Glassbox Bio Molecular Audit from the repository root.
 
 ## Prerequisites
 
@@ -18,18 +18,21 @@ export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
 export STANDARD_IMAGE_DIGEST="sha256:REPLACE_WITH_PUBLISHED_STANDARD_DIGEST"
 export DEEP_IMAGE_DIGEST="sha256:REPLACE_WITH_PUBLISHED_DEEP_DIGEST"
+export MARKETPLACE_REPORTING_SECRET="marketplace-reporting-secret"
+export UBBAGENT_IMAGE_REPO="REGION-docker.pkg.dev/PROJECT/REPO/ubbagent"
+export UBBAGENT_IMAGE_TAG="1.0.0"
 ```
 
 ## Validate bundle before deploy
 
 ```bash
-make review-preflight
+make bundle-preflight
 ```
 
 ## Deploy and run (standard)
 
 ```bash
-make reviewer-run-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" STANDARD_IMAGE_DIGEST="${STANDARD_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make customer-run-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" STANDARD_IMAGE_DIGEST="${STANDARD_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 ```
 
 Equivalent step-by-step flow:
@@ -37,14 +40,14 @@ Equivalent step-by-step flow:
 ```bash
 make deploy-manifest-infra-standard STANDARD_IMAGE_DIGEST="${STANDARD_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
 make stage-manifest-input-standard PROJECT_ID="${PROJECT_ID}"
-make deploy-manifest-job-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make deploy-manifest-job-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 make fetch-manifest-output-standard
 ```
 
 ## Deploy and run (deep)
 
 ```bash
-make reviewer-run-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make customer-run-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 ```
 
 Deep runtime note:
@@ -57,15 +60,15 @@ Equivalent step-by-step flow:
 ```bash
 make deploy-manifest-infra-deep DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
 make stage-manifest-input-deep PROJECT_ID="${PROJECT_ID}"
-make deploy-manifest-job-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make deploy-manifest-job-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 make fetch-manifest-output-deep
 ```
 
 ## Output retrieval behavior
 
 - The runtime writes artifacts to the mounted volume first under `/data/output/<run_id>/`.
-- `make reviewer-run-standard` and `make reviewer-run-deep` include the fetch step automatically.
-- In the step-by-step flow, the local reviewer copy is created only when `make fetch-manifest-output-standard` or `make fetch-manifest-output-deep` completes.
+- `make customer-run-standard` and `make customer-run-deep` include the fetch step automatically.
+- In the step-by-step flow, the local customer copy is created only when `make fetch-manifest-output-standard` or `make fetch-manifest-output-deep` completes.
 - The PVC staging/fetch helper is intentionally separate from the runtime image. Deep jobs use the deep-tools runtime image, but the helper pod stays lightweight and should not be changed to the deep runtime image.
 - Default local download path: `./e2e/downloads/<run_id>/`
 - To see the most recent standard run id: `cat .last_manifest_run_id.standard`
@@ -91,11 +94,14 @@ Examples:
 To use a different input parent directory, override `INPUT_ROOT`:
 
 ```bash
-make reviewer-run-standard \
+make customer-run-standard \
   INPUT_ROOT="/absolute/path/to/input_root" \
   PROJECT_ID="my_project" \
   CATEGORY_ID="${CATEGORY_ID}" \
-  WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+  WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" \
+  MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" \
+  UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" \
+  UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 ```
 
 That expects:

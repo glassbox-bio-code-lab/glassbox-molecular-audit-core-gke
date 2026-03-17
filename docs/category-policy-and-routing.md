@@ -104,7 +104,7 @@ The policy file also includes a canonical 40-module baseline snapshot:
 
 Treat that baseline as a policy snapshot, not as a promise that every environment will execute the same module set on every run. The resolved category, entitlement, staged inputs, and actual runtime conditions still determine the effective module plan.
 
-## Operator and reviewer guidance
+## Operator and auditor guidance
 
 When you prepare, validate, or review a run, confirm all of the following:
 

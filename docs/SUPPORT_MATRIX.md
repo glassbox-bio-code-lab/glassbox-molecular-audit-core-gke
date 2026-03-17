@@ -11,7 +11,7 @@
 
 | Backend | Status | Notes |
 | --- | --- | --- |
-| PVC | Supported | Default in chart and reviewer workflow |
+| PVC | Supported | Default in the chart and customer workflow |
 | GCS Fuse (GKE CSI) | Supported | Requires bucket, Workload Identity, and cluster GCS Fuse support |
 
 ## Entitlement/auth model
@@ -27,8 +27,8 @@
 - `PersistentVolumeClaim` (PVC mode)
 - `ConfigMap`
 - `ServiceAccount`
-- Optional `Deployment` + `Service` (console mode)
-- Optional `ubbagent` sidecar (Marketplace reporting)
+- No console/UI resources in the current chart
+- Required `ubbagent` sidecar for Marketplace-metered deployments
 
 ## Out-of-scope/non-supported
 
