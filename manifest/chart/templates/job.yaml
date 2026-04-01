@@ -19,15 +19,19 @@ spec:
         gke-gcsfuse/volumes: "true"
       {{- end }}
     spec:
+      {{- $runnerRepo := include "glassbox-mol-audit.runnerImageRepository" . }}
+      {{- $runnerTag := include "glassbox-mol-audit.runnerImageTag" . }}
+      {{- $runnerDigest := include "glassbox-mol-audit.runnerImageDigest" . }}
       restartPolicy: Never
       serviceAccountName: {{ include "glassbox-mol-audit.serviceAccountName" . | quote }}
       initContainers:
         - name: init-volume-perms
-          # Keep the init helper lightweight. Pulling the full deep-tools runtime here
-          # delays job startup on cold GPU nodes even though this container only needs
-          # POSIX mkdir/chmod for the mounted /data paths.
-          image: "alpine:3.20"
-          imagePullPolicy: IfNotPresent
+          {{- if $runnerDigest }}
+          image: "{{ $runnerRepo }}@{{ $runnerDigest }}"
+          {{- else }}
+          image: "{{ $runnerRepo }}:{{ $runnerTag }}"
+          {{- end }}
+          imagePullPolicy: {{ include "glassbox-mol-audit.runnerImagePullPolicy" . }}
           securityContext:
             runAsUser: 0
           env:
@@ -47,9 +51,6 @@ spec:
               mountPath: {{ if eq .Values.storage.type "gcs" }}{{ .Values.storage.gcs.mountPath }}{{ else }}/data{{ end }}
       containers:
         - name: glassbox-mol-audit
-          {{- $runnerRepo := include "glassbox-mol-audit.runnerImageRepository" . }}
-          {{- $runnerTag := include "glassbox-mol-audit.runnerImageTag" . }}
-          {{- $runnerDigest := include "glassbox-mol-audit.runnerImageDigest" . }}
           {{- if $runnerDigest }}
           image: "{{ $runnerRepo }}@{{ $runnerDigest }}"
           {{- else }}
@@ -73,7 +74,11 @@ spec:
             - name: GBX_CONTAINER_IMAGE_DIGEST
               value: "{{ $runnerDigest }}"
             {{- end }}
-            {{ if .Values.marketplace.reportingSecret }}
+            - name: GBX_K8S_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: GBX_RELEASE_NAME
+              value: {{ .Release.Name | quote }}
+            {{- if .Values.marketplace.reportingSecret }}
             - name: UBB_REPORTING_ENABLED
               value: {{ ternary "true" "false" .Values.ubbagent.enabled | quote }}
             - name: UBB_AGENT_HOST
@@ -100,14 +105,14 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.marketplace.reportingSecret | quote }}
                   key: consumer-id
-            {{ end }}
+            {{- end }}
           command:
             - /bin/sh
             - -c
           args:
             - |
               set -eu
-              echo "[glassbox-mol-audit] project=${PROJECT_ID} mode=${GBX_RUN_MODE}"
+              echo "[glassbox-mol-audit] project=${PROJECT_ID} mode=${GBX_RUN_MODE} region=${GBX_DEPLOY_REGION} residency=${GBX_DATA_RESIDENCY} egress=${GBX_EGRESS_MODE}"
               # Route STDERR to STDOUT so Cloud Logging doesn't mark normal progress logs as ERROR.
               exec python3 -m app.gbx_core_runner_v3 \
                 --project-id "${PROJECT_ID}" \

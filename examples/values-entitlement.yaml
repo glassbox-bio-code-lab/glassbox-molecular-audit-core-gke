@@ -1,4 +1,4 @@
 config:
-  entitlementUrl: https://glassbox-seal-662656813262.us-central1.run.app
+  entitlementUrl: ""
   entitlementAuthMode: google
-  entitlementAudience: https://glassbox-seal-662656813262.us-central1.run.app
+  entitlementAudience: ""

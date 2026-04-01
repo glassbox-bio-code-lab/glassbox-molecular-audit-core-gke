@@ -20,6 +20,14 @@ image:
 config:
   projectId: mol_audit_demo
   runMode: standard
+  gcpRegion: ""
+  gcpLocation: ""
+  dataResidency: strict
+  egressMode: STRICT_LOCAL
+  optionalAnalytics: false
+  allowedEgressDomains: ""
+  regionTraceability: true
+  timezone: UTC
   # Required when job.enabled=true. Must match the input evidence class.
   categoryId: ""
   inputPath: /data/input
@@ -27,23 +35,28 @@ config:
   runId: ""
   failClosed: true
   reproPackEnabled: true
-  entitlementUrl: https://glassbox-seal-662656813262.us-central1.run.app
+  entitlementUrl: ""
   # Optional: set to "auto"|"google"|"gcp"|"idtoken" to attach Authorization bearer token.
   entitlementAuthMode: "google"
   # Optional: explicit audience to mint the identity token for. Defaults to entitlementUrl.
-  entitlementAudience: "https://glassbox-seal-662656813262.us-central1.run.app"
+  entitlementAudience: ""
   # Entitlement HTTP timeout in seconds. Verification can override this to fail fast.
   entitlementTimeoutSec: "20"
-  TN_DISABLE_EXTERNAL_DATA: "0"
+  TN_DISABLE_EXTERNAL_DATA: "1"
   TN_ENABLE_UQ: "1"
   TN_ENABLE_OT_FEATURES: "1"
   standardModeQuiet: false
 
 marketplace:
+  # Required for supported Marketplace-metered deployments. Leave empty only for
+  # bare chart inspection or local non-metered validation paths.
   reportingSecret: ""
   partnerSolutionLabel: "isol_plb32_001kf00001e8runiab_pwayyor5jqd3hikviwgqy5hwrx2hnpn5"
 
 ubbagent:
+  # Bare chart defaults keep this off until Marketplace reporting inputs and
+  # ubbagent image values are supplied. Supported customer deployments set this
+  # to true together with marketplace.reportingSecret.
   enabled: false
   image:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent

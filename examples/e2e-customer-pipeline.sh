@@ -13,13 +13,33 @@ NAMESPACE="${NAMESPACE:-glassbox-mol-audit}"
 PROFILE_VALUES="${PROFILE_VALUES:-${CHART_DIR}/values-standard.yaml}" # add values-gpu.yaml for deep runs
 RUN_MODE="${RUN_MODE:-standard}" # "standard" or "deep"
 
-STANDARD_IMAGE_REPO="${STANDARD_IMAGE_REPO:-us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit}"
-DEEP_IMAGE_REPO="${DEEP_IMAGE_REPO:-us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools}"
+STANDARD_IMAGE_REPO="${STANDARD_IMAGE_REPO:-}"
+DEEP_IMAGE_REPO="${DEEP_IMAGE_REPO:-}"
 IMAGE_REPO="${IMAGE_REPO:-}"
 IMAGE_TAG="${IMAGE_TAG:-1.0.1}"
 PROJECT_ID="${PROJECT_ID:-test}"
 CATEGORY_ID="${CATEGORY_ID:-SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ}"
-ENTITLEMENT_URL="${ENTITLEMENT_URL:-https://glassbox-seal-662656813262.us-central1.run.app}"
+ENTITLEMENT_URL="${ENTITLEMENT_URL:-}"
+GCP_REGION="${GCP_REGION:-}"
+GCP_LOCATION="${GCP_LOCATION:-${GCP_REGION}}"
+MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET:-}"
+UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO:-}"
+UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG:-1.0.0}"
+UBBAGENT_IMAGE_DIGEST="${UBBAGENT_IMAGE_DIGEST:-}"
+DATA_RESIDENCY="${DATA_RESIDENCY:-strict}"
+EGRESS_MODE="${EGRESS_MODE:-STRICT_LOCAL}"
+OPTIONAL_ANALYTICS="${OPTIONAL_ANALYTICS:-0}"
+ALLOWED_EGRESS_DOMAINS="${ALLOWED_EGRESS_DOMAINS:-}"
+ARTIFACT_REGISTRY_HOST="${ARTIFACT_REGISTRY_HOST:-}"
+STANDARD_IMAGE_PATH="${STANDARD_IMAGE_PATH:-glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit}"
+DEEP_IMAGE_PATH="${DEEP_IMAGE_PATH:-glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools}"
+
+if [[ -z "${STANDARD_IMAGE_REPO}" && -n "${ARTIFACT_REGISTRY_HOST}" ]]; then
+  STANDARD_IMAGE_REPO="${ARTIFACT_REGISTRY_HOST}/${STANDARD_IMAGE_PATH}"
+fi
+if [[ -z "${DEEP_IMAGE_REPO}" && -n "${ARTIFACT_REGISTRY_HOST}" ]]; then
+  DEEP_IMAGE_REPO="${ARTIFACT_REGISTRY_HOST}/${DEEP_IMAGE_PATH}"
+fi
 
 # Optional: deterministic run_id (also controls output subdir name).
 RUN_ID="${RUN_ID:-}"
@@ -29,8 +49,6 @@ ENTITLEMENT_AUTH_MODE="${ENTITLEMENT_AUTH_MODE:-google}"
 ENTITLEMENT_AUDIENCE="${ENTITLEMENT_AUDIENCE:-${ENTITLEMENT_URL}}"
 WORKLOAD_IDENTITY_ENABLED="${WORKLOAD_IDENTITY_ENABLED:-1}"
 WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA:-}"   # your-sa@project.iam.gserviceaccount.com
-
-CONSOLE_ENABLED="${CONSOLE_ENABLED:-false}"
 
 # Use the on-disk sample input bundle by default.
 SAMPLE_INPUT_DIR="${SAMPLE_INPUT_DIR:-${GITHUB_ROOT}/e2e/sample_input/test}"
@@ -73,6 +91,26 @@ if [[ -z "${CATEGORY_ID}" ]]; then
   echo "[e2e] ERROR: CATEGORY_ID is required (job.enabled=true requires config.categoryId)"
   exit 1
 fi
+if [[ -z "${GCP_REGION}" ]]; then
+  echo "[e2e] ERROR: GCP_REGION is required"
+  exit 1
+fi
+if [[ -z "${IMAGE_REPO}" ]]; then
+  echo "[e2e] ERROR: IMAGE_REPO is required. Set IMAGE_REPO directly or provide ARTIFACT_REGISTRY_HOST."
+  exit 1
+fi
+if [[ -z "${ENTITLEMENT_URL}" ]]; then
+  echo "[e2e] ERROR: ENTITLEMENT_URL is required"
+  exit 1
+fi
+if [[ -z "${MARKETPLACE_REPORTING_SECRET}" ]]; then
+  echo "[e2e] ERROR: MARKETPLACE_REPORTING_SECRET is required for Marketplace-metered deployments"
+  exit 1
+fi
+if [[ -z "${UBBAGENT_IMAGE_REPO}" ]]; then
+  echo "[e2e] ERROR: UBBAGENT_IMAGE_REPO is required for Marketplace-metered deployments"
+  exit 1
+fi
 
 if [[ "${WORKLOAD_IDENTITY_ENABLED}" == "1" && -z "${WORKLOAD_IDENTITY_GSA}" ]]; then
   echo "[e2e] ERROR: WORKLOAD_IDENTITY_GSA is required when WORKLOAD_IDENTITY_ENABLED=1"
@@ -105,6 +143,16 @@ if [[ "${WORKLOAD_IDENTITY_ENABLED}" == "1" ]]; then
     HELM_AUTH_ARGS+=(--set "workloadIdentity.gcpServiceAccount=${WORKLOAD_IDENTITY_GSA}")
   fi
 fi
+UBB_HELM_ARGS=(
+  --set "ubbagent.enabled=true"
+  --set-string "marketplace.reportingSecret=${MARKETPLACE_REPORTING_SECRET}"
+  --set-string "ubbagent.image.repository=${UBBAGENT_IMAGE_REPO}"
+)
+if [[ -n "${UBBAGENT_IMAGE_DIGEST}" ]]; then
+  UBB_HELM_ARGS+=(--set-string "ubbagent.image.digest=${UBBAGENT_IMAGE_DIGEST}")
+else
+  UBB_HELM_ARGS+=(--set-string "ubbagent.image.tag=${UBBAGENT_IMAGE_TAG}")
+fi
 
 echo "[e2e] installing chart (phase 1: create infra, job disabled)"
 helm upgrade --install "${APP_NAME}" "${CHART_DIR}" \
@@ -112,12 +160,18 @@ helm upgrade --install "${APP_NAME}" "${CHART_DIR}" \
   --create-namespace \
   "${HELM_VALUES_ARGS[@]}" \
   --set job.enabled=false \
-  --set console.enabled="${CONSOLE_ENABLED}" \
   --set image.repository="${IMAGE_REPO}" \
   --set image.tag="${IMAGE_TAG}" \
   --set config.projectId="${PROJECT_ID}" \
+  --set config.gcpRegion="${GCP_REGION}" \
+  --set config.gcpLocation="${GCP_LOCATION}" \
+  --set config.dataResidency="${DATA_RESIDENCY}" \
+  --set config.egressMode="${EGRESS_MODE}" \
+  --set config.optionalAnalytics="${OPTIONAL_ANALYTICS}" \
+  --set config.allowedEgressDomains="${ALLOWED_EGRESS_DOMAINS}" \
   --set config.categoryId="${CATEGORY_ID}" \
   --set config.entitlementUrl="${ENTITLEMENT_URL}" \
+  "${UBB_HELM_ARGS[@]}" \
   "${HELM_AUTH_ARGS[@]}"
 
 echo "[e2e] checking pvc ${PVC_NAME} (if using pvc storage)"
@@ -184,12 +238,18 @@ helm upgrade --install "${APP_NAME}" "${CHART_DIR}" \
   --create-namespace \
   "${HELM_VALUES_ARGS[@]}" \
   --set job.enabled=true \
-  --set console.enabled="${CONSOLE_ENABLED}" \
   --set image.repository="${IMAGE_REPO}" \
   --set image.tag="${IMAGE_TAG}" \
   --set config.projectId="${PROJECT_ID}" \
+  --set config.gcpRegion="${GCP_REGION}" \
+  --set config.gcpLocation="${GCP_LOCATION}" \
+  --set config.dataResidency="${DATA_RESIDENCY}" \
+  --set config.egressMode="${EGRESS_MODE}" \
+  --set config.optionalAnalytics="${OPTIONAL_ANALYTICS}" \
+  --set config.allowedEgressDomains="${ALLOWED_EGRESS_DOMAINS}" \
   --set config.categoryId="${CATEGORY_ID}" \
   --set config.entitlementUrl="${ENTITLEMENT_URL}" \
+  "${UBB_HELM_ARGS[@]}" \
   "${HELM_AUTH_ARGS[@]}"
 
 echo "[e2e] job status"
@@ -281,7 +341,7 @@ YAML
       fi
     fi
 
-    # Always download outputs locally for reviewer workflow.
+    # Always download outputs locally for the supported customer workflow.
     # Note: kubectl cp requires the pod to be Running (not Succeeded), hence the long sleep above.
     LOCAL_OUTPUT_DIR="${LOCAL_OUTPUT_DIR:-${LOCAL_HINT}}"
     mkdir -p "$(dirname "${LOCAL_OUTPUT_DIR}")"

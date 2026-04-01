@@ -212,12 +212,31 @@ def _job_name_for(run_id: str) -> str:
 
 def create_runner_job(namespace: str, run_id: str, input_dir: Path, bundle_dir: Path) -> str:
     job_name = _job_name_for(run_id)
+    if not RUNNER_IMAGE.strip():
+        raise RuntimeError(
+            "GBX_RUNNER_IMAGE is required. Set it to a region-appropriate Artifact Registry image reference."
+        )
 
     env = [
         client.V1EnvVar(name="GBX_RUN_ID", value=run_id),
         client.V1EnvVar(name="GBX_INPUT_DIR", value=str(input_dir)),
         client.V1EnvVar(name="GBX_BUNDLE_DIR", value=str(bundle_dir)),
     ]
+    for env_name in (
+        "GOOGLE_CLOUD_REGION",
+        "GOOGLE_CLOUD_LOCATION",
+        "GBX_DEPLOY_REGION",
+        "GBX_DEPLOY_LOCATION",
+        "GBX_DATA_RESIDENCY",
+        "GBX_EGRESS_MODE",
+        "GBX_OPTIONAL_ANALYTICS_ENABLED",
+        "GBX_ALLOWED_EGRESS_DOMAINS",
+        "GBX_REGION_TRACEABILITY",
+        "TZ",
+    ):
+        value = (os.getenv(env_name) or "").strip()
+        if value:
+            env.append(client.V1EnvVar(name=env_name, value=value))
 
     volume_name = "gbx-data"
     pvc_name = os.getenv("GBX_DATA_PVC", "glassbox-mol-audit-data")

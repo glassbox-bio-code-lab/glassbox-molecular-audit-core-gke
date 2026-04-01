@@ -4,8 +4,8 @@ set -euo pipefail
 NAMESPACE="glassbox-mol-audit"
 APP_NAME="glassbox-mol-audit"
 RUN_MODE="${RUN_MODE:-standard}"
-STANDARD_IMAGE_REPO="${STANDARD_IMAGE_REPO:-us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit}"
-DEEP_IMAGE_REPO="${DEEP_IMAGE_REPO:-us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools}"
+STANDARD_IMAGE_REPO="${STANDARD_IMAGE_REPO:-}"
+DEEP_IMAGE_REPO="${DEEP_IMAGE_REPO:-}"
 IMAGE_REPO="${IMAGE_REPO:-}"
 IMAGE_TAG="${IMAGE_TAG:-1.0.1}"
 
@@ -15,6 +15,10 @@ if [[ -z "${IMAGE_REPO}" ]]; then
   else
     IMAGE_REPO="${STANDARD_IMAGE_REPO}"
   fi
+fi
+if [[ -z "${IMAGE_REPO}" ]]; then
+  echo "ERROR: IMAGE_REPO is required. Set IMAGE_REPO directly or provide ARTIFACT_REGISTRY_HOST." >&2
+  exit 1
 fi
 
 helm upgrade --install "${APP_NAME}" ./manifest/chart \

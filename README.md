@@ -39,7 +39,7 @@ This directory is the public, customer-facing repository root for Google Cloud M
 
 Customer runtime uses identity-only entitlement checks. The Kubernetes Job authenticates to the hosted entitlement service with Workload Identity, and entitlement is resolved from the customer GSA principal. Customer deployments do not require a customer-managed entitlement token or any provisioning credential.
 
-Run all reviewer and customer commands from the repository root.
+Run all public bundle commands from this repository root.
 
 ## Scope
 
@@ -48,12 +48,12 @@ Run all reviewer and customer commands from the repository root.
 - `examples/` install values and end-to-end install script
 - `docs/` runbook, input contract, and support matrix
 
-## Reviewer Quickstart
+## Customer Quickstart
 
 Validate the bundle first:
 
 ```bash
-make review-preflight
+make bundle-preflight
 ```
 
 Published runtime repositories:
@@ -61,7 +61,7 @@ Published runtime repositories:
 - Standard: `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit`
 - Deep: `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools`
 
-Primary reviewer docs:
+Primary customer docs:
 
 - [Customer runbook](./docs/RUNBOOK_CUSTOMER.md)
 - [Support matrix](./docs/SUPPORT_MATRIX.md)
@@ -74,21 +74,12 @@ Consumption tracking:
 - The standard/deep audit Job pods also declare explicit resource requests and limits.
 - The verification tester pod also carries the same pod-level consumption label and explicit resources.
 
-## Local Runtime Image Builds
+## Runtime Image Builds
 
 The published runtime images already include the required `models/` and `data/`
-artifacts. If you need to rebuild the runtime images locally from this public
-repo, fetch the non-git-tracked asset bundles first:
-
-```bash
-./deploy/fetch_assets.sh
-```
-
-That script stages assets into the build-context paths consumed by the runtime
-Dockerfiles:
-
-- `deploy/models`
-- `deploy/data`
+artifacts. Rebuilding runtime images from the public repository is not part of
+the supported customer workflow because the asset bundles are not distributed in
+this repo.
 
 ## Quick start
 
@@ -124,6 +115,9 @@ export GSA_PROJECT_ID="your-gsa-project-id"
 export CLUSTER_PROJECT_ID="your-gke-project-id"
 export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
+export MARKETPLACE_REPORTING_SECRET="marketplace-reporting-secret"
+export UBBAGENT_IMAGE_REPO="REGION-docker.pkg.dev/PROJECT/REPO/ubbagent"
+export UBBAGENT_IMAGE_TAG="1.0.0"
 
 # Bare digest only. The standard target selects the standard public repository automatically.
 export STANDARD_IMAGE_DIGEST="sha256:83acd3ba526d3a4f22e8385a61f7d70973db7295a28dd477fdf0bfaabefc7d68"
@@ -135,12 +129,12 @@ gcloud iam service-accounts add-iam-policy-binding "${WORKLOAD_IDENTITY_GSA}" \
   --role=roles/iam.workloadIdentityUser \
   --member="serviceAccount:${CLUSTER_PROJECT_ID}.svc.id.goog[glassbox-mol-audit/glassbox-mol-audit-sa]"
 
-make reviewer-run-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" STANDARD_IMAGE_DIGEST="${STANDARD_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make customer-run-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" STANDARD_IMAGE_DIGEST="${STANDARD_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 
 # Equivalent step-by-step flow:
 make deploy-manifest-infra-standard STANDARD_IMAGE_DIGEST="${STANDARD_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
 make stage-manifest-input-standard PROJECT_ID="${PROJECT_ID}"
-make deploy-manifest-job-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make deploy-manifest-job-standard PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 make fetch-manifest-output-standard RUN_ID="${RUN_ID}"
 ```
 
@@ -149,15 +143,15 @@ If the runner fails with `Missing Authorization bearer token` or `iam.serviceAcc
 Artifact retrieval note:
 
 - Runtime outputs are written in-cluster first under `/data/output/<run_id>/`.
-- `make reviewer-run-standard` includes the fetch step automatically.
+- `make customer-run-standard` includes the fetch step automatically.
 - If you run the step-by-step flow instead, artifacts are not copied to your workstation until `make fetch-manifest-output-standard` completes.
 - Local download path: `./e2e/downloads/<run_id>/`
 - To confirm the latest run id locally: `cat .last_manifest_run_id.standard`
 
-Preflight validation:
+Bundle validation:
 
 ```bash
-make review-preflight
+make bundle-preflight
 ```
 
 ## Deep
@@ -165,6 +159,9 @@ make review-preflight
 ```bash
 
 export WORKLOAD_IDENTITY_GSA="your-sa@project.iam.gserviceaccount.com"
+export MARKETPLACE_REPORTING_SECRET="marketplace-reporting-secret"
+export UBBAGENT_IMAGE_REPO="REGION-docker.pkg.dev/PROJECT/REPO/ubbagent"
+export UBBAGENT_IMAGE_TAG="1.0.0"
 
 export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
@@ -172,12 +169,12 @@ export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
 # Bare digest only. The deep target selects the deep public repository automatically.
 export DEEP_IMAGE_DIGEST="sha256:5ab27f827916b6bc874dfd5243d48c0428b840d77a2586e5e0453e2e271a6fb1"
 
-make reviewer-run-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make customer-run-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 
 # Equivalent step-by-step flow:
 make deploy-manifest-infra-deep DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
 make stage-manifest-input-deep PROJECT_ID="${PROJECT_ID}"
-make deploy-manifest-job-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+make deploy-manifest-job-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 make fetch-manifest-output-deep  RUN_ID="${RUN_ID}"
 
 ```
@@ -186,7 +183,7 @@ Operator note:
 
 - Deep mode requires the deep runtime image and GPU-capable scheduling for the actual audit job.
 - Deep mode requires a compatible GPU node pool with available capacity in the target zone. If no matching GPU node can be scheduled or autoscaled, the deep job will remain pending until capacity is available.
-- The reviewer PVC staging/fetch helper intentionally uses a lightweight utility image and does not use the deep runtime image.
+- The PVC staging/fetch helper intentionally uses a lightweight utility image and does not use the deep runtime image.
 - Do not repoint the PVC helper at the deep-tools image; that helper only copies data into and out of `/data`.
 
 Customer runtime note:
@@ -207,9 +204,9 @@ Customer runtime note:
   - `standard_audit_run`
   - `deep_audit_run`
 
-The standard wrapper targets always use `STANDARD_IMAGE_*`. The deep wrapper targets always use `DEEP_IMAGE_*`. Digests must be bare `sha256:...` values, not full image references.
+The standard wrapper targets always use `STANDARD_IMAGE_*`. The deep wrapper targets always use `DEEP_IMAGE_*`. Digests must be bare `sha256:...` values, not full image references. The supported Marketplace path also requires `MARKETPLACE_REPORTING_SECRET` plus the `UBBAGENT_IMAGE_*` values so metering is configured at deploy time.
 
-Sample customer input used by the reviewer pipeline is staged from:
+Sample customer input for the public command path is staged from:
 
 - `e2e/sample_input/<project_id>/01_sources/`
 
@@ -225,14 +222,17 @@ export PROJECT_ID="my_project"
 ```
 
 To stage a different parent directory, override `INPUT_ROOT` when invoking the
-reviewer target. Example:
+customer target. Example:
 
 ```bash
-make reviewer-run-standard \
+make customer-run-standard \
   INPUT_ROOT="/absolute/path/to/input_root" \
   PROJECT_ID="my_project" \
   CATEGORY_ID="${CATEGORY_ID}" \
-  WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
+  WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}" \
+  MARKETPLACE_REPORTING_SECRET="${MARKETPLACE_REPORTING_SECRET}" \
+  UBBAGENT_IMAGE_REPO="${UBBAGENT_IMAGE_REPO}" \
+  UBBAGENT_IMAGE_TAG="${UBBAGENT_IMAGE_TAG}"
 ```
 
 That command expects inputs at:
