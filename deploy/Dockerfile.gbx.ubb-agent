@@ -9,11 +9,12 @@ RUN git clone https://github.com/GoogleCloudPlatform/ubbagent.git /ubbagent-src 
     rm -rf /ubbagent-src/.git
 WORKDIR /ubbagent-src/
 RUN go get \
-      golang.org/x/crypto@v0.45.0 \
-      golang.org/x/net@v0.47.0 \
-      golang.org/x/oauth2@v0.27.0 \
-      google.golang.org/protobuf@v1.33.0 \
-      github.com/golang/glog@v1.2.4 \
+      golang.org/x/crypto@v0.46.0 \
+      golang.org/x/net@v0.48.0 \
+      golang.org/x/oauth2@v0.34.0 \
+      google.golang.org/grpc@v1.79.3 \
+      google.golang.org/protobuf@v1.36.10 \
+      github.com/golang/glog@v1.2.5 \
       gopkg.in/yaml.v2@v2.2.8 && \
     go mod tidy && \
     mkdir -p /ubbagent-src/bin && \

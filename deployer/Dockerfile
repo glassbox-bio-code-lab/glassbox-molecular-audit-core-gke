@@ -35,9 +35,16 @@ FROM ${DEPLOYER_BASE_IMAGE}
 ARG HELM_VERSION
 ARG KUBECTL_130_VERSION
 ARG KUBECTL_131_VERSION
+ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
+
+LABEL com.googleapis.cloudmarketplace.product.service.name=${MP_SERVICE_NAME}
 
 RUN apt-get update \
     && apt-get dist-upgrade -y \
+    && python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" \
+    && python3 -m pip install --no-cache-dir --upgrade \
+      "pyOpenSSL>=26,<27" \
+      "cryptography>=46.0.6,<47" \
     && apt-get purge -y python3-pip wget gnupg2 \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
