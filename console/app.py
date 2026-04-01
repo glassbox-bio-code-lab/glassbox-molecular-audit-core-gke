@@ -19,11 +19,11 @@ from kubernetes import client, config
 from kubernetes.client import ApiException
 
 
-APP_VERSION = os.getenv("GBX_CONSOLE_VERSION", "1.0.0")
+APP_VERSION = os.getenv("GBX_CONSOLE_VERSION", "1.0.1")
 NAMESPACE_DEFAULT = os.getenv("POD_NAMESPACE", "glassbox-mol-audit")
 RUNNER_IMAGE = os.getenv(
     "GBX_RUNNER_IMAGE",
-    "us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit:1.0.0",
+    "us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit:1.0.1",
 )
 RUNNER_SA = os.getenv("GBX_RUNNER_SERVICE_ACCOUNT", "default")
 

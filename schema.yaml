@@ -2,12 +2,12 @@ x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
 
-  publishedVersion: "1.0"
+  publishedVersion: "1.0.1"
   publishedVersionMetadata:
     releaseNote: >-
-      Initial Marketplace release for Glassbox Bio Molecular Audit.
+      Bugfix release for sealed report embedding and report wording alignment.
     releaseTypes:
-      - Feature
+      - BugFix
     recommended: true
 
   clusterConstraints:

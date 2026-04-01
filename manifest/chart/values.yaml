@@ -3,17 +3,17 @@ fullnameOverride: ""
 
 image:
   repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
-  tag: "1.0.0"
+  tag: "1.0.1"
   pullPolicy: IfNotPresent
   digest: ""
   standard:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
-    tag: "1.0.0"
+    tag: "1.0.1"
     pullPolicy: IfNotPresent
     digest: ""
   deep:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
-    tag: "1.0.0"
+    tag: "1.0.1"
     pullPolicy: IfNotPresent
     digest: ""
 
@@ -47,7 +47,7 @@ ubbagent:
   enabled: false
   image:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
-    tag: "1.0.0"
+    tag: "1.0.1"
     pullPolicy: IfNotPresent
     digest: ""
   localPort: "4567"
@@ -100,7 +100,7 @@ apptest:
   enabled: false
   image:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
-    tag: "1.0.0"
+    tag: "1.0.1"
     pullPolicy: Always
     digest: ""
   resources:

@@ -3,5 +3,5 @@ name: glassbox-mol-audit
 description: Glassbox Bio Molecular Audit deterministic validation job
 icon: https://res.cloudinary.com/dpaosk5m5/image/upload/v1773115941/glassbox_logo_no_name_final_no_bg_ekcpyu.png
 type: application
-version: 1.0.0
-appVersion: "1.0.0"
+version: 1.0.1
+appVersion: "1.0.1"

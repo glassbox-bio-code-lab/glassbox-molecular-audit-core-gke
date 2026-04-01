@@ -12,7 +12,7 @@ metadata:
 spec:
   descriptor:
     type: glassbox-mol-audit
-    version: "1.0.0"
+    version: "1.0.1"
     description: Deterministic computational validation dossier for target tractability (Glassbox Bio Molecular Audit).
     maintainers:
       - name: Glassbox Bio

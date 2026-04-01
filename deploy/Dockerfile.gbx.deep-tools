@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=glassbox-mol-audit:1.0.0
+ARG BASE_IMAGE=glassbox-mol-audit:1.0.1
 FROM ${BASE_IMAGE}
 
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
