@@ -26,10 +26,17 @@ RUN curl -fsSLo kubernetes-src.tar.gz "https://github.com/kubernetes/kubernetes/
 
 FROM ${GOLANG_BUILD_IMAGE} AS helm-builder
 ARG HELM_VERSION
-WORKDIR /out
-RUN curl -fsSLo helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" \
-    && tar -xzf helm.tar.gz \
-    && install -D linux-amd64/helm /out/helm
+WORKDIR /src
+RUN curl -fsSLo helm-src.tar.gz "https://github.com/helm/helm/archive/refs/tags/${HELM_VERSION}.tar.gz" \
+    && tar -xzf helm-src.tar.gz --strip-components=1 \
+    && /usr/local/go/bin/go get \
+      golang.org/x/crypto@v0.46.0 \
+      golang.org/x/net@v0.48.0 \
+      golang.org/x/oauth2@v0.34.0 \
+      google.golang.org/grpc@v1.79.3 \
+      google.golang.org/protobuf@v1.36.10 \
+    && /usr/local/go/bin/go mod download \
+    && CGO_ENABLED=0 /usr/local/go/bin/go build -trimpath -o /out/helm ./cmd/helm
 
 FROM ${DEPLOYER_BASE_IMAGE}
 ARG HELM_VERSION
