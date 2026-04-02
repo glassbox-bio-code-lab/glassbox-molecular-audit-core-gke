@@ -55,6 +55,38 @@ actions:
       run_id="verification-${APP_INSTANCE_NAME}"
       job_name="${APP_INSTANCE_NAME}-verification-run"
       helper_image="${APP_IO_IMAGE:-alpine:3.20}"
+      dump_namespace_events() {
+        echo "=== recent namespace events (${NAMESPACE}) ==="
+        kubectl -n "${NAMESPACE}" get events --sort-by=.lastTimestamp || true
+      }
+      dump_job_debug() {
+        echo "=== job summary (${job_name}) ==="
+        kubectl -n "${NAMESPACE}" get job "${job_name}" -o wide || true
+        echo "=== job yaml (${job_name}) ==="
+        kubectl -n "${NAMESPACE}" get job "${job_name}" -o yaml || true
+        echo "=== configmap yaml (${APP_CONFIGMAP}) ==="
+        kubectl -n "${NAMESPACE}" get configmap "${APP_CONFIGMAP}" -o yaml || true
+        echo "=== pods for job (${job_name}) ==="
+        kubectl -n "${NAMESPACE}" get pods -l job-name="${job_name}" -o wide || true
+        pods="$(kubectl -n "${NAMESPACE}" get pods -l job-name="${job_name}" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null || true)"
+        if [ -z "${pods}" ]; then
+          echo "No pods found for ${job_name}"
+        fi
+        for pod in ${pods}; do
+          echo "=== describe pod/${pod} ==="
+          kubectl -n "${NAMESPACE}" describe pod "${pod}" || true
+          echo "=== pod json summary ${pod} ==="
+          kubectl -n "${NAMESPACE}" get pod "${pod}" -o jsonpath='pod={.metadata.name}{"\nphase="}{.status.phase}{"\nreason="}{.status.reason}{"\nmessage="}{.status.message}{"\nstartTime="}{.status.startTime}{"\ncontainerStates="}{range .status.initContainerStatuses[*]}{.name}{":"}{if .state.waiting}{.state.waiting.reason}{":"}{.state.waiting.message}{end}{if .state.terminated}{.state.terminated.reason}{":"}{.state.terminated.message}{" exit="}{.state.terminated.exitCode}{end}{"\n"}{end}{range .status.containerStatuses[*]}{.name}{":"}{if .state.waiting}{.state.waiting.reason}{":"}{.state.waiting.message}{end}{if .state.terminated}{.state.terminated.reason}{":"}{.state.terminated.message}{" exit="}{.state.terminated.exitCode}{end}{if .lastState.terminated}{" last="}{.lastState.terminated.reason}{":"}{.lastState.terminated.message}{" exit="}{.lastState.terminated.exitCode}{end}{"\n"}{end}' || true
+          containers="$(kubectl -n "${NAMESPACE}" get pod "${pod}" -o jsonpath='{range .spec.initContainers[*]}{.name}{"\n"}{end}{range .spec.containers[*]}{.name}{"\n"}{end}' 2>/dev/null || true)"
+          for container in ${containers}; do
+            echo "=== logs pod/${pod} container/${container} current ==="
+            kubectl -n "${NAMESPACE}" logs "${pod}" -c "${container}" --timestamps --tail=500 || true
+            echo "=== logs pod/${pod} container/${container} previous ==="
+            kubectl -n "${NAMESPACE}" logs "${pod}" -c "${container}" --previous --timestamps --tail=500 || true
+          done
+        done
+        dump_namespace_events
+      }
       kubectl -n "${NAMESPACE}" delete job "${job_name}" --ignore-not-found >/dev/null 2>&1 || true
       cat <<YAML | kubectl -n "${NAMESPACE}" apply -f -
       apiVersion: batch/v1
@@ -116,8 +148,8 @@ actions:
                 claimName: ${APP_PVC_NAME}
       YAML
       if ! kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job_name}" --timeout=3600s; then
-        kubectl -n "${NAMESPACE}" describe job "${job_name}" || true
-        kubectl -n "${NAMESPACE}" logs "job/${job_name}" --all-containers --timestamps --tail=500 || true
+        echo "Verification job failed or timed out before completion"
+        dump_job_debug
         exit 1
       fi
 
@@ -128,6 +160,22 @@ actions:
       helper="${APP_INSTANCE_NAME}-verification-io"
       run_id="verification-${APP_INSTANCE_NAME}"
       helper_image="${APP_IO_IMAGE:-alpine:3.20}"
+      dump_helper_debug() {
+        echo "=== helper pod summary (${helper}) ==="
+        kubectl -n "${NAMESPACE}" get pod "${helper}" -o wide || true
+        echo "=== describe pod/${helper} ==="
+        kubectl -n "${NAMESPACE}" describe pod "${helper}" || true
+        echo "=== helper logs (${helper}) ==="
+        kubectl -n "${NAMESPACE}" logs "${helper}" --timestamps --tail=200 || true
+        echo "=== output tree for ${run_id} ==="
+        kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "find /data/output/${run_id} -maxdepth 3 -type f | sort" || true
+        echo "=== results directory listing for ${run_id} ==="
+        kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "ls -lah /data/output/${run_id}/results" || true
+        echo "=== summary.json (${run_id}) ==="
+        kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/results/summary.json && sed -n '1,220p' /data/output/${run_id}/results/summary.json" || true
+        echo "=== recent namespace events (${NAMESPACE}) ==="
+        kubectl -n "${NAMESPACE}" get events --sort-by=.lastTimestamp || true
+      }
       kubectl -n "${NAMESPACE}" delete pod "${helper}" --ignore-not-found >/dev/null 2>&1 || true
       kubectl -n "${NAMESPACE}" wait --for=delete "pod/${helper}" --timeout=60s >/dev/null 2>&1 || true
       cat <<YAML | kubectl -n "${NAMESPACE}" apply -f -
@@ -156,9 +204,25 @@ actions:
           persistentVolumeClaim:
             claimName: ${APP_PVC_NAME}
       YAML
-      kubectl -n "${NAMESPACE}" wait --for=condition=Ready "pod/${helper}" --timeout=600s
-      kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/results/summary.json"
-      kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/run_manifest.json"
-      kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "jq -e '.status == \"SUCCESS\" or .status == \"success\" or .execution' /data/output/${run_id}/results/summary.json >/dev/null"
+      if ! kubectl -n "${NAMESPACE}" wait --for=condition=Ready "pod/${helper}" --timeout=600s; then
+        echo "Helper pod did not become Ready"
+        dump_helper_debug
+        exit 1
+      fi
+      if ! kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/results/summary.json"; then
+        echo "Missing summary.json for ${run_id}"
+        dump_helper_debug
+        exit 1
+      fi
+      if ! kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/run_manifest.json"; then
+        echo "Missing run_manifest.json for ${run_id}"
+        dump_helper_debug
+        exit 1
+      fi
+      if ! kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "jq -e '.status == \"SUCCESS\" or .status == \"success\" or .execution' /data/output/${run_id}/results/summary.json >/dev/null"; then
+        echo "summary.json did not contain a success/execution marker for ${run_id}"
+        dump_helper_debug
+        exit 1
+      fi
       kubectl -n "${NAMESPACE}" delete job "${APP_INSTANCE_NAME}-verification-run" --ignore-not-found >/dev/null 2>&1 || true
       kubectl -n "${NAMESPACE}" delete pod "${helper}" --ignore-not-found >/dev/null 2>&1 || true
