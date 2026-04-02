@@ -39,6 +39,12 @@ x-google-marketplace:
           type: REPO_WITH_REGISTRY
         ubbagent.image.tag:
           type: TAG
+    tester:
+      properties:
+        apptest.image.repository:
+          type: REPO_WITH_REGISTRY
+        apptest.image.tag:
+          type: TAG
 
 properties:
   name:
