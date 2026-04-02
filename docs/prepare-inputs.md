@@ -141,7 +141,7 @@ If you are using multiple candidates, make sure the row identifiers and `primary
 
 ## Input provenance expectations
 
-Prepare inputs so an operator or auditor can answer these questions without guesswork:
+Prepare inputs so a reviewer can answer these questions without guesswork:
 
 - Which files were supplied by the customer
 - Which file is the authoritative selection file

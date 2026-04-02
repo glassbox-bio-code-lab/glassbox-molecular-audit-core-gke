@@ -7,12 +7,19 @@ ubbagent:
 apptest:
   enabled: true
 
+storage:
+  type: pvc
+  pvc:
+    storageClassName: ""
+    size: 50Gi
+
 config:
   projectId: verification_project
   runMode: standard
   categoryId: SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ
   failClosed: false
   entitlementUrl: http://127.0.0.1:9
-  entitlementAuthMode: google
-  entitlementAudience: http://127.0.0.1:9
+  entitlementAuthMode: none
+  entitlementAudience: ""
+  entitlementTimeoutSec: "0.5"
   standardModeQuiet: true

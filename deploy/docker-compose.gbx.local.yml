@@ -1,6 +1,6 @@
 services:
   glassbox-mol-audit-runner:
-    image: ${GBX_RUNNER_IMAGE:-glassbox-mol-audit:1.0}
+    image: ${GBX_RUNNER_IMAGE:-glassbox-mol-audit:1.0.1}
     build:
       context: ..
       dockerfile: ${GBX_RUNNER_DOCKERFILE:-deploy/Dockerfile.gbx.local}
@@ -38,14 +38,14 @@ services:
   # Use this with: docker compose --profile deep-tools ...
   glassbox-mol-audit-deep-tools:
     profiles: ["deep-tools"]
-    image: ${GBX_DEEP_TOOLS_IMAGE:-glassbox-mol-audit-deep-tools:1.0}
+    image: ${GBX_DEEP_TOOLS_IMAGE:-glassbox-mol-audit/deep-tools:1.0.1}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.gbx.deep-tools
       args:
-        BASE_IMAGE: ${GBX_DEEP_BASE_IMAGE:-glassbox-mol-audit:1.0}
+        BASE_IMAGE: ${GBX_DEEP_BASE_IMAGE:-glassbox-mol-audit:1.0.1}
         INSTALL_CUDAQ: ${GBX_DEEP_INSTALL_CUDAQ:-1}
-        MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/REPLACE_ME_SERVICE_NAME}
+        MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog}
     env_file:
       - ./.env.gbx.local
     environment:
@@ -69,4 +69,3 @@ services:
       - ../gbx_output:/data/output
     working_dir: /app
     command: ["bash", "-lc", "sleep infinity"]
-

@@ -5,7 +5,7 @@ x-google-marketplace:
   publishedVersion: "1.0.1"
   publishedVersionMetadata:
     releaseNote: >-
-      Bugfix release for sealed report embedding and report wording alignment.
+      Fixes seal embedding and report labeling consistency for the Marketplace release.
     releaseTypes:
       - BugFix
     recommended: true
@@ -85,56 +85,6 @@ properties:
     description: Required when enabling the runtime Job. Must match the project input evidence class.
     default: ""
 
-  config.gcpRegion:
-    type: string
-    title: GCP region
-    description: Primary deployment region for locality-aware installs.
-    default: ""
-
-  config.gcpLocation:
-    type: string
-    title: GCP location
-    description: Explicit location override when region and location differ.
-    default: ""
-
-  config.dataResidency:
-    type: string
-    title: Data residency
-    enum:
-      - strict
-      - project_local
-      - permissive
-    default: strict
-
-  config.egressMode:
-    type: string
-    title: Egress mode
-    enum:
-      - STRICT_LOCAL
-      - ALLOW_GCP_ONLY
-      - ALLOW_EXTERNAL
-    default: STRICT_LOCAL
-
-  config.optionalAnalytics:
-    type: boolean
-    title: Optional analytics
-    default: false
-
-  config.allowedEgressDomains:
-    type: string
-    title: Allowed egress domains
-    default: ""
-
-  config.regionTraceability:
-    type: boolean
-    title: Region traceability
-    default: true
-
-  config.timezone:
-    type: string
-    title: Timezone
-    default: UTC
-
   config.failClosed:
     type: boolean
     title: Fail closed on inadmissible inputs
@@ -149,37 +99,6 @@ properties:
     type: boolean
     title: Suppress standard-mode skip warnings
     default: false
-
-  config.entitlementUrl:
-    type: string
-    title: Entitlement URL
-    description: Base URL for entitlement verification and usage events.
-    default: ""
-
-  config.entitlementAuthMode:
-    type: string
-    title: Entitlement auth mode
-    enum:
-      - ""
-      - auto
-      - google
-      - gcp
-      - idtoken
-      - principal
-      - none
-      - off
-      - disabled
-    default: google
-
-  config.entitlementAudience:
-    type: string
-    title: Entitlement audience
-    default: ""
-
-  config.entitlementTimeoutSec:
-    type: string
-    title: Entitlement timeout in seconds
-    default: "20"
 
   storage.type:
     type: string

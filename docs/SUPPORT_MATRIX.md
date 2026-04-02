@@ -4,14 +4,14 @@
 
 | Profile  | Run mode   | Runtime image repository                                                                           | Expected runtime | Resource baseline                       |
 | -------- | ---------- | -------------------------------------------------------------------------------------------------- | ---------------- | --------------------------------------- |
-| Standard | `standard` | `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit`            | 10-15 min        | 2-4 vCPU, 8-16Gi RAM, 50Gi PVC          |
-| Deep     | `deep`     | `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools` | 15-30 min        | 4-8 vCPU, 32-64Gi RAM, 1 GPU, 200Gi PVC |
+| Standard | `standard` | `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit`            | 2-6h             | 2-4 vCPU, 8-16Gi RAM, 50Gi PVC          |
+| Deep     | `deep`     | `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools` | 4-8h             | 4-8 vCPU, 32-64Gi RAM, 1 GPU, 200Gi PVC |
 
 ## Storage backends
 
-| Backend | Status | Notes |
-| --- | --- | --- |
-| PVC | Supported | Default in the chart and customer workflow |
+| Backend            | Status    | Notes                                                            |
+| ------------------ | --------- | ---------------------------------------------------------------- |
+| PVC                | Supported | Default in chart and reviewer workflow                           |
 | GCS Fuse (GKE CSI) | Supported | Requires bucket, Workload Identity, and cluster GCS Fuse support |
 
 ## Entitlement/auth model
@@ -27,8 +27,8 @@
 - `PersistentVolumeClaim` (PVC mode)
 - `ConfigMap`
 - `ServiceAccount`
-- No console/UI resources in the current chart
-- Required `ubbagent` sidecar for Marketplace-metered deployments
+- Optional `Deployment` + `Service` (console mode)
+- Optional `ubbagent` sidecar (Marketplace reporting)
 
 ## Out-of-scope/non-supported
 

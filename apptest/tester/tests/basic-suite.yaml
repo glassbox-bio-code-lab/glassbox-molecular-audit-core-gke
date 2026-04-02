@@ -12,7 +12,9 @@ actions:
     script: |-
       set -euo pipefail
       helper="${APP_INSTANCE_NAME}-verification-io"
+      helper_image="${APP_IO_IMAGE:-alpine:3.20}"
       kubectl -n "${NAMESPACE}" delete pod "${helper}" --ignore-not-found >/dev/null 2>&1 || true
+      kubectl -n "${NAMESPACE}" wait --for=delete "pod/${helper}" --timeout=60s >/dev/null 2>&1 || true
       cat <<YAML | kubectl -n "${NAMESPACE}" apply -f -
       apiVersion: v1
       kind: Pod
@@ -26,7 +28,10 @@ actions:
         serviceAccountName: ${APP_SERVICE_ACCOUNT}
         containers:
         - name: io
-          image: alpine:3.20
+          image: ${helper_image}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
           command: ["/bin/sh", "-c", "sleep 3600"]
           volumeMounts:
           - name: data
@@ -36,10 +41,12 @@ actions:
           persistentVolumeClaim:
             claimName: ${APP_PVC_NAME}
       YAML
-      kubectl -n "${NAMESPACE}" wait --for=condition=Ready "pod/${helper}" --timeout=180s
+      kubectl -n "${NAMESPACE}" wait --for=condition=Ready "pod/${helper}" --timeout=600s
       kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "mkdir -p /data/input/${APP_PROJECT_ID}"
       kubectl -n "${NAMESPACE}" cp /fixtures/test/. "${helper}:/data/input/${APP_PROJECT_ID}"
       kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "find /data/input/${APP_PROJECT_ID} -maxdepth 2 -type f | sort | head -20"
+      kubectl -n "${NAMESPACE}" delete pod "${helper}" --ignore-not-found >/dev/null 2>&1 || true
+      kubectl -n "${NAMESPACE}" wait --for=delete "pod/${helper}" --timeout=180s >/dev/null 2>&1 || true
 
 - name: Run a standard verification job
   bashTest:
@@ -47,6 +54,7 @@ actions:
       set -euo pipefail
       run_id="verification-${APP_INSTANCE_NAME}"
       job_name="${APP_INSTANCE_NAME}-verification-run"
+      helper_image="${APP_IO_IMAGE:-alpine:3.20}"
       kubectl -n "${NAMESPACE}" delete job "${job_name}" --ignore-not-found >/dev/null 2>&1 || true
       cat <<YAML | kubectl -n "${NAMESPACE}" apply -f -
       apiVersion: batch/v1
@@ -69,7 +77,10 @@ actions:
             serviceAccountName: ${APP_SERVICE_ACCOUNT}
             initContainers:
             - name: init-volume-perms
-              image: alpine:3.20
+              image: ${helper_image}
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                runAsUser: 0
               command: ["/bin/sh", "-c"]
               args:
               - |
@@ -93,9 +104,9 @@ actions:
               - |
                 set -eu
                 exec python3 -m app.gbx_core_runner_v3 \
-                  --project-id "${PROJECT_ID}" \
-                  --input-root "${INPUT_PATH}" \
-                  --output-dir "${OUTPUT_PATH}" 2>&1
+                  --project-id "\${PROJECT_ID}" \
+                  --input-root "\${INPUT_PATH}" \
+                  --output-dir "\${OUTPUT_PATH}" 2>&1
               volumeMounts:
               - name: data
                 mountPath: /data
@@ -116,6 +127,36 @@ actions:
       set -euo pipefail
       helper="${APP_INSTANCE_NAME}-verification-io"
       run_id="verification-${APP_INSTANCE_NAME}"
+      helper_image="${APP_IO_IMAGE:-alpine:3.20}"
+      kubectl -n "${NAMESPACE}" delete pod "${helper}" --ignore-not-found >/dev/null 2>&1 || true
+      kubectl -n "${NAMESPACE}" wait --for=delete "pod/${helper}" --timeout=60s >/dev/null 2>&1 || true
+      cat <<YAML | kubectl -n "${NAMESPACE}" apply -f -
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: ${helper}
+        labels:
+          app.kubernetes.io/instance: ${APP_INSTANCE_NAME}
+          app.kubernetes.io/name: glassbox-mol-audit
+      spec:
+        restartPolicy: Never
+        serviceAccountName: ${APP_SERVICE_ACCOUNT}
+        containers:
+        - name: io
+          image: ${helper_image}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          command: ["/bin/sh", "-c", "sleep 3600"]
+          volumeMounts:
+          - name: data
+            mountPath: /data
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ${APP_PVC_NAME}
+      YAML
+      kubectl -n "${NAMESPACE}" wait --for=condition=Ready "pod/${helper}" --timeout=600s
       kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/results/summary.json"
       kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "test -f /data/output/${run_id}/run_manifest.json"
       kubectl -n "${NAMESPACE}" exec "${helper}" -- sh -c "jq -e '.status == \"SUCCESS\" or .status == \"success\" or .execution' /data/output/${run_id}/results/summary.json >/dev/null"

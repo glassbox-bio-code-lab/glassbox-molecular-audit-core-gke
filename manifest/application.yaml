@@ -38,14 +38,14 @@ spec:
       kind: Secret
     - group: ""
       kind: Service
+    - group: apps
+      kind: Deployment
     - group: batch
       kind: Job
     - group: rbac.authorization.k8s.io
       kind: Role
     - group: rbac.authorization.k8s.io
       kind: RoleBinding
-    - group: rbac.authorization.k8s.io
-      kind: ServiceAccount
 
   notes: |-
     ## Run via CLI
@@ -55,12 +55,7 @@ spec:
       --namespace ${NAMESPACE} --create-namespace \
       -f ./manifest/chart/values-standard.yaml \
       --set job.enabled=true \
-      --set image.repository=us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit \
       --set image.digest=sha256:REPLACE_ME \
-      --set config.gcpRegion=us-central1 \
-      --set-string marketplace.reportingSecret=${NAME}-reporting-secret \
-      --set ubbagent.enabled=true \
-      --set ubbagent.image.repository=us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent \
       --set workloadIdentity.enabled=true \
       --set workloadIdentity.gcpServiceAccount=your-sa@project.iam.gserviceaccount.com \
       --set config.projectId=REPLACE_PROJECT_ID \

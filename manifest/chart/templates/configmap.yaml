@@ -9,21 +9,9 @@ metadata:
 data:
   PROJECT_ID: {{ .Values.config.projectId | quote }}
   GBX_RUN_MODE: {{ .Values.config.runMode | quote }}
-  GOOGLE_CLOUD_REGION: {{ .Values.config.gcpRegion | quote }}
-  GOOGLE_CLOUD_LOCATION: {{ default .Values.config.gcpRegion .Values.config.gcpLocation | quote }}
-  GBX_DEPLOY_REGION: {{ .Values.config.gcpRegion | quote }}
-  GBX_DEPLOY_LOCATION: {{ default .Values.config.gcpRegion .Values.config.gcpLocation | quote }}
-  GBX_DATA_RESIDENCY: {{ .Values.config.dataResidency | quote }}
-  GBX_EGRESS_MODE: {{ .Values.config.egressMode | quote }}
-  GBX_OPTIONAL_ANALYTICS_ENABLED: {{ ternary "1" "0" .Values.config.optionalAnalytics | quote }}
-  GBX_ALLOWED_EGRESS_DOMAINS: {{ .Values.config.allowedEgressDomains | quote }}
-  GBX_REGION_TRACEABILITY: {{ .Values.config.regionTraceability | quote }}
-  TZ: {{ .Values.config.timezone | quote }}
   GBX_CATEGORY_ID: {{ .Values.config.categoryId | quote }}
   INPUT_PATH: {{ .Values.config.inputPath | quote }}
   OUTPUT_PATH: {{ .Values.config.outputPath | quote }}
-  GBX_STORAGE_TYPE: {{ .Values.storage.type | quote }}
-  GBX_GCS_BUCKET: {{ .Values.storage.gcs.bucket | quote }}
   {{- if .Values.config.runId }}
   # Optional deterministic run_id. The runner writes outputs under OUTPUT_PATH/<run_id>.
   GBX_RUN_ID: {{ .Values.config.runId | quote }}
