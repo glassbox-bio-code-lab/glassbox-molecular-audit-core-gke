@@ -39,11 +39,7 @@ This directory is the public, customer-facing repository root for Google Cloud M
 
 Customer runtime uses identity-only entitlement checks. The Kubernetes Job authenticates to the hosted entitlement service with Workload Identity, and entitlement is resolved from the customer GSA principal. Customer deployments do not require a customer-managed entitlement token or any provisioning credential.
 
-Run all reviewer/customer commands from this directory:
-
-```bash
-cd github
-```
+Run all reviewer/customer commands from this repository root.
 
 ## Scope
 
@@ -130,7 +126,7 @@ export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
 
 # Bare digest only. The standard target selects the standard public repository automatically.
-export STANDARD_IMAGE_DIGEST="sha256:83acd3ba526d3a4f22e8385a61f7d70973db7295a28dd477fdf0bfaabefc7d68"
+export STANDARD_IMAGE_DIGEST="sha256:ff4207ab0f597ccb91eb94e66040b08fba1472e9f6c0b9757e0850948edd0452"
 
 # Required once per KSA/GSA pair so the in-cluster KSA can mint the OIDC bearer token
 # used by the entitlement service.
@@ -174,7 +170,7 @@ export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
 
 # Bare digest only. The deep target selects the deep public repository automatically.
-export DEEP_IMAGE_DIGEST="sha256:5ab27f827916b6bc874dfd5243d48c0428b840d77a2586e5e0453e2e271a6fb1"
+export DEEP_IMAGE_DIGEST="sha256:a6b712a2eb1dc6b998c772a9fcc1f314bf1ae5d48ac420d01237904affb7be06"
 
 make reviewer-run-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
 

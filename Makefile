@@ -7,13 +7,15 @@ CHART_DIR ?= ./manifest/chart
 STANDARD_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
 DEEP_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
 
-STANDARD_IMAGE_TAG ?= 1.0.1
-DEEP_IMAGE_TAG ?= 1.0.1
-STANDARD_IMAGE_DIGEST ?= sha256:83acd3ba526d3a4f22e8385a61f7d70973db7295a28dd477fdf0bfaabefc7d68
-DEEP_IMAGE_DIGEST ?= sha256:5ab27f827916b6bc874dfd5243d48c0428b840d77a2586e5e0453e2e271a6fb1
+STANDARD_IMAGE_TAG ?= 1.0.2
+DEEP_IMAGE_TAG ?= 1.0.2
+STANDARD_IMAGE_DIGEST ?= sha256:ff4207ab0f597ccb91eb94e66040b08fba1472e9f6c0b9757e0850948edd0452
+DEEP_IMAGE_DIGEST ?= sha256:a6b712a2eb1dc6b998c772a9fcc1f314bf1ae5d48ac420d01237904affb7be06
 HELPER_IMAGE_REPO ?= alpine
 HELPER_IMAGE_TAG ?= 3.20
 HELPER_IMAGE_DIGEST ?=
+DEPLOYER_IMAGE ?= glassbox-mol-audit/deployer:1.0.2
+TESTER_IMAGE ?= glassbox-mol-audit/tester:1.0.2
 
 PROJECT_ID ?=
 RUN_MODE ?= standard
@@ -35,6 +37,7 @@ RUN_ID_FILE_DEEP ?= ./.last_manifest_run_id.deep
 
 .PHONY: help \
 		review-preflight \
+		deployer-build tester-build \
 		reviewer-run-standard reviewer-run-deep \
 		deploy-manifest-infra stage-manifest-input deploy-manifest-job fetch-manifest-output \
 		deploy-manifest-infra-standard stage-manifest-input-standard deploy-manifest-job-standard fetch-manifest-output-standard \
@@ -67,6 +70,8 @@ help:
 	@echo ""
 	@echo "Preflight:"
 	@echo "  make review-preflight"
+	@echo "  make deployer-build DEPLOYER_IMAGE=<image>"
+	@echo "  make tester-build TESTER_IMAGE=<image>"
 	@echo ""
 	@echo "Optional:"
 	@echo "  RUN_ID=<custom-run-id>      # otherwise reviewer_<mode>_<timestamp> is used"
@@ -93,12 +98,16 @@ review-preflight:
 	@echo "[preflight] Required customer docs"
 	@test -f ./docs/RUNBOOK_CUSTOMER.md
 	@test -f ./docs/SUPPORT_MATRIX.md
-	@echo "[preflight] Required internal release docs"
-	@test -f ../docs/MARKETPLACE_REVIEW_CHECKLIST.md
 	@echo "[preflight] Required sample input bundle"
 	@test -f ./e2e/sample_input/test/01_sources/sources.json
 	@test -f ./e2e/sample_input/test/01_sources/portfolio_selected.csv
 	@echo "[preflight] PASS"
+
+deployer-build:
+	docker build -f deployer/Dockerfile -t "$(DEPLOYER_IMAGE)" .
+
+tester-build:
+	docker build -f apptest/tester/Dockerfile -t "$(TESTER_IMAGE)" apptest/tester
 
 deploy-manifest-infra:
 	@IMAGE_REPO_RESOLVED="$(STANDARD_IMAGE_REPO)"; \

@@ -42,4 +42,4 @@ helm upgrade --install glassbox-mol-audit ./manifest/chart \
 - `ubbagent.metricNameStandard` and `ubbagent.metricNameDeep` are the mode-aware Marketplace usage metrics.
 - The deep/GPU overlay requires a compatible GPU node pool with available capacity in the target zone.
 - The V1 chart does not render any console/UI resources; the reserved `console` values block is kept only as a placeholder for a future product.
-- Internal release validation uses `../../../docs/MARKETPLACE_REVIEW_CHECKLIST.md`.
+- `deploy/` contains runtime/local image build assets; `deployer/` contains the Marketplace deployer image packaging.

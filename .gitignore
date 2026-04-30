@@ -1,0 +1,29 @@
+.history/
+.DS_Store
+Thumbs.db
+
+# Local editor and environment files
+.vscode/
+.idea/
+*.swp
+*.swo
+.env
+.env.*
+!.env.example
+
+# Python/cache artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local run state and downloaded outputs
+.last_manifest_run_id*
+e2e/downloads/
+gbx_output/
+projects/
+
+# Runtime asset bundles are fetched locally before image builds.
+deploy/models/
+deploy/data/

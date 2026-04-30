@@ -1,0 +1,16 @@
+.git
+.history
+.DS_Store
+Thumbs.db
+
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+.env
+.env.*
+e2e/downloads
+gbx_output
+projects

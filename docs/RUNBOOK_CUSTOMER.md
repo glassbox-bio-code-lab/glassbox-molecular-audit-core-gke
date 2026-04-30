@@ -1,7 +1,7 @@
 # Customer Runbook (Marketplace Helm Deployment)
 
 This runbook describes the customer-facing operator flow for deploying and
-running Glassbox Bio Molecular Audit from the `github/` repository root.
+running Glassbox Bio Molecular Audit from this repository root.
 
 ## Prerequisites
 

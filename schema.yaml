@@ -2,10 +2,10 @@ x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
 
-  publishedVersion: "1.0.1"
+  publishedVersion: "1.0.2"
   publishedVersionMetadata:
     releaseNote: >-
-      Fixes seal embedding and report labeling consistency for the Marketplace release.
+      Aligns the customer-facing Marketplace bundle with the 1.0.2 runtime images and refreshed documentation.
     releaseTypes:
       - BugFix
     recommended: true

@@ -14,10 +14,10 @@ Molecular Audit.
 
 We support two deployment profiles. Choose exactly one:
 
-| Profile        | Expected runtime range | Rough cost range | Required cluster resources                      | When to use it                                                      |
-| -------------- | ---------------------- | ---------------- | ----------------------------------------------- | ------------------------------------------------------------------- |
-| Standard (CPU) | 2–6h (cap 6h)          | $$$              | 2–4 vCPU, 8–16Gi RAM, 50Gi PVC                  | Default choice for most audits; balanced speed vs cost              |
-| Deep / GPU     | 4–8h (cap 8h)          | $$$$             | 4–8 vCPU, 32–64Gi RAM, 1x NVIDIA GPU, 200Gi PVC | Deep evidence expansion, docking-heavy or GPU-accelerated workflows |
+| Profile               | Expected runtime range | Rough cost range | Required cluster resources                      | When to use it                                                      |
+| --------------------- | ---------------------- | ---------------- | ----------------------------------------------- | ------------------------------------------------------------------- |
+| Standard (CPU)        | 10-15 min              | $$               | 2–4 vCPU, 8–16Gi RAM, 50Gi PVC                  | Default choice for most audits; balanced speed vs cost              |
+| Deep / GPU (optional) | 15-30 min              | $$$              | 4–8 vCPU, 32–64Gi RAM, 1x NVIDIA GPU, 200Gi PVC | Deep evidence expansion, docking-heavy or GPU-accelerated workflows |
 
 Values files:
 
@@ -66,5 +66,10 @@ That script populates:
 - `deploy/models`
 - `deploy/data`
 
-For release validation checks and required evidence, see
-`../docs/MARKETPLACE_REVIEW_CHECKLIST.md`.
+## Directory roles
+
+- `deploy/` contains runtime Dockerfiles, local runtime build helpers, and UBB agent build assets.
+- `deployer/` contains the Google Cloud Marketplace deployer image packaging.
+- `apptest/` contains the Marketplace verification deployer overlay and tester image.
+
+For self-contained bundle validation, run `make review-preflight` from the repository root.
