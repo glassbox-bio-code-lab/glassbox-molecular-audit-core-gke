@@ -51,7 +51,8 @@ RUN apt-get update \
     && python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" \
     && python3 -m pip install --no-cache-dir --upgrade \
       "pyOpenSSL>=26,<27" \
-      "cryptography>=46.0.6,<47" \
+      "cryptography>=46.0.7,<47" \
+    && python3 -c 'import importlib.metadata as m; v=tuple(int(p) for p in m.version("cryptography").split(".")[:3]); assert (46,0,7) <= v < (47,0,0), m.version("cryptography"); print("cryptography validation ok:", m.version("cryptography"))' \
     && apt-get purge -y python3-pip wget gnupg2 \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*

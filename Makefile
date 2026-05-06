@@ -14,7 +14,7 @@ DEEP_IMAGE_DIGEST ?= sha256:dc045461a5943b24356b2989db126a01c80a513b06fc3706f3c7
 HELPER_IMAGE_REPO ?= alpine
 HELPER_IMAGE_TAG ?= 3.20
 HELPER_IMAGE_DIGEST ?=
-DEPLOYER_IMAGE ?= glassbox-mol-audit/deployer:1.0.2
+DEPLOYER_IMAGE ?= glassbox-mol-audit/deployer:1.0.3
 TESTER_IMAGE ?= glassbox-mol-audit/tester:1.0.2
 
 PROJECT_ID ?=
