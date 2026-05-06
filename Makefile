@@ -7,15 +7,15 @@ CHART_DIR ?= ./manifest/chart
 STANDARD_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
 DEEP_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
 
-STANDARD_IMAGE_TAG ?= 1.0.3
-DEEP_IMAGE_TAG ?= 1.0.3
-STANDARD_IMAGE_DIGEST ?= sha256:28200808eb14c8cb9aaea9b8a3f1cd6e46832e4bda6356fdd979b94971168826
-DEEP_IMAGE_DIGEST ?= sha256:dc045461a5943b24356b2989db126a01c80a513b06fc3706f3c73a4bb5b4332f
+STANDARD_IMAGE_TAG ?= 1.0
+DEEP_IMAGE_TAG ?= 1.0
+STANDARD_IMAGE_DIGEST ?= sha256:63c1803422f3b4dac24fb99b40b925f06062530bf187c2f2a6f5ec645be1427e
+DEEP_IMAGE_DIGEST ?= sha256:63e1a03cac561ad49d33efbe4c00af56c097cffda1e0a1273bec43225ff7f318
 HELPER_IMAGE_REPO ?= alpine
 HELPER_IMAGE_TAG ?= 3.20
 HELPER_IMAGE_DIGEST ?=
-DEPLOYER_IMAGE ?= glassbox-mol-audit/deployer:1.0.3
-TESTER_IMAGE ?= glassbox-mol-audit/tester:1.0.2
+DEPLOYER_IMAGE ?= glassbox-mol-audit/deployer:1.0
+TESTER_IMAGE ?= glassbox-mol-audit/tester:1.0
 
 PROJECT_ID ?=
 RUN_MODE ?= standard
