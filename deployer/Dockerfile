@@ -1,5 +1,6 @@
 ARG DEPLOYER_BASE_IMAGE=gcr.io/cloud-marketplace-tools/k8s/deployer_helm:0.12.12
-ARG GOLANG_BUILD_IMAGE=golang:1.25.8
+# Go 1.25.9 includes the fix for CVE-2026-27143 in the toolchain used to build kubectl and helm.
+ARG GOLANG_BUILD_IMAGE=golang:1.25.9
 ARG HELM_VERSION=v3.20.1
 ARG KUBECTL_130_VERSION=v1.30.14
 ARG KUBECTL_131_VERSION=v1.31.14
@@ -9,8 +10,12 @@ ARG KUBECTL_130_VERSION
 WORKDIR /src
 RUN curl -fsSLo kubernetes-src.tar.gz "https://github.com/kubernetes/kubernetes/archive/refs/tags/${KUBECTL_130_VERSION}.tar.gz" \
     && tar -xzf kubernetes-src.tar.gz --strip-components=1 \
-    && /usr/local/go/bin/go mod edit -require=golang.org/x/net@v0.38.0 -require=golang.org/x/oauth2@v0.27.0 \
+    && /usr/local/go/bin/go mod edit \
+      -require=golang.org/x/net@v0.38.0 \
+      -require=golang.org/x/oauth2@v0.27.0 \
+      -require=github.com/moby/spdystream@v0.5.1 \
     && /usr/local/go/bin/go work vendor \
+    && /usr/local/go/bin/go list -mod=vendor -m github.com/moby/spdystream \
     && PATH=/usr/local/go/bin:$PATH make kubectl KUBE_VERBOSE=0 \
     && install -D _output/local/go/bin/kubectl /out/kubectl
 
@@ -19,8 +24,12 @@ ARG KUBECTL_131_VERSION
 WORKDIR /src
 RUN curl -fsSLo kubernetes-src.tar.gz "https://github.com/kubernetes/kubernetes/archive/refs/tags/${KUBECTL_131_VERSION}.tar.gz" \
     && tar -xzf kubernetes-src.tar.gz --strip-components=1 \
-    && /usr/local/go/bin/go mod edit -require=golang.org/x/net@v0.38.0 -require=golang.org/x/oauth2@v0.27.0 \
+    && /usr/local/go/bin/go mod edit \
+      -require=golang.org/x/net@v0.38.0 \
+      -require=golang.org/x/oauth2@v0.27.0 \
+      -require=github.com/moby/spdystream@v0.5.1 \
     && /usr/local/go/bin/go work vendor \
+    && /usr/local/go/bin/go list -mod=vendor -m github.com/moby/spdystream \
     && PATH=/usr/local/go/bin:$PATH make kubectl KUBE_VERBOSE=0 \
     && install -D _output/local/go/bin/kubectl /out/kubectl
 

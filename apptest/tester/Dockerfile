@@ -1,4 +1,5 @@
-ARG GOLANG_BUILD_IMAGE=golang:1.25.8
+# Go 1.25.9 includes the fix for CVE-2026-27143 in the toolchain used to build kubectl.
+ARG GOLANG_BUILD_IMAGE=golang:1.25.9
 ARG KUBECTL_VERSION=v1.34.3
 
 FROM ${GOLANG_BUILD_IMAGE} AS kubectl-builder
@@ -25,6 +26,10 @@ RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y --no-install
     jq \
     curl \
     tar \
+    openssl \
+    && openssl_version="$(dpkg-query -W -f='${Version}' openssl)" \
+    && dpkg --compare-versions "$openssl_version" ge "3.5.5-1~deb13u2" \
+    && openssl version \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -39,4 +44,5 @@ WORKDIR /
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel pyyaml && \
     rm -f /usr/local/lib/python3.11/ensurepip/_bundled/pip-*.whl \
           /usr/local/lib/python3.11/ensurepip/_bundled/setuptools-*.whl
-ENTRYPOINT ["python", "/run_tests.py"]
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["python", "-u", "/run_tests.py"]
