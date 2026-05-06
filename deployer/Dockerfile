@@ -1,9 +1,17 @@
-ARG DEPLOYER_BASE_IMAGE=gcr.io/cloud-marketplace-tools/k8s/deployer_helm:0.12.12
 # Go 1.25.9 includes the fix for CVE-2026-27143 in the toolchain used to build kubectl and helm.
 ARG GOLANG_BUILD_IMAGE=golang:1.25.9
 ARG HELM_VERSION=v3.20.1
 ARG KUBECTL_130_VERSION=v1.30.14
 ARG KUBECTL_131_VERSION=v1.31.14
+ARG MARKETPLACE_TOOLS_REF=744d114ffa5ed6eec5b3154301162cdf4fab92b0
+
+FROM alpine:3.22 AS marketplace-tools
+ARG MARKETPLACE_TOOLS_REF
+RUN apk add --no-cache git
+RUN git clone https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools.git /marketplace-k8s-app-tools \
+    && cd /marketplace-k8s-app-tools \
+    && git checkout "${MARKETPLACE_TOOLS_REF}" \
+    && rm -rf .git
 
 FROM ${GOLANG_BUILD_IMAGE} AS kubectl-130-builder
 ARG KUBECTL_130_VERSION
@@ -47,7 +55,7 @@ RUN curl -fsSLo helm-src.tar.gz "https://github.com/helm/helm/archive/refs/tags/
     && /usr/local/go/bin/go mod download \
     && CGO_ENABLED=0 /usr/local/go/bin/go build -trimpath -o /out/helm ./cmd/helm
 
-FROM ${DEPLOYER_BASE_IMAGE}
+FROM ubuntu:22.04
 ARG HELM_VERSION
 ARG KUBECTL_130_VERSION
 ARG KUBECTL_131_VERSION
@@ -57,20 +65,32 @@ LABEL com.googleapis.cloudmarketplace.product.service.name=${MP_SERVICE_NAME}
 
 RUN apt-get update \
     && apt-get dist-upgrade -y \
+    && apt-get install -y --no-install-recommends \
+      bash \
+      ca-certificates \
+      curl \
+      gettext \
+      jq \
+      python3 \
+      python3-pip \
+      python-is-python3 \
     && python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" \
     && python3 -m pip install --no-cache-dir --upgrade \
       "pyOpenSSL>=26,<27" \
+      "pyyaml>=6,<7" \
       "cryptography>=46.0.7,<47" \
     && python3 -c 'import importlib.metadata as m; v=tuple(int(p) for p in m.version("cryptography").split(".")[:3]); assert (46,0,7) <= v < (47,0,0), m.version("cryptography"); print("cryptography validation ok:", m.version("cryptography"))' \
-    && apt-get purge -y python3-pip wget gnupg2 \
+    && apt-get purge -y python3-pip \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=kubectl-130-builder /out/kubectl /opt/kubectl/1.30/kubectl
 COPY --from=kubectl-131-builder /out/kubectl /opt/kubectl/1.31/kubectl
 COPY --from=helm-builder /out/helm /usr/bin/helm
+COPY --from=marketplace-tools /marketplace-k8s-app-tools/marketplace/deployer_helm_base/ /bin/
+COPY --from=marketplace-tools /marketplace-k8s-app-tools/marketplace/deployer_util/ /bin/
 
-RUN chmod 0755 /opt/kubectl/1.30/kubectl /opt/kubectl/1.31/kubectl /usr/bin/helm \
+RUN chmod 0755 /opt/kubectl/1.30/kubectl /opt/kubectl/1.31/kubectl /usr/bin/helm /bin/*.sh /bin/*.py \
     && ln -snf /opt/kubectl/1.31 /opt/kubectl/default
 
 RUN mkdir -p /data/chart /data-test/chart
