@@ -126,7 +126,7 @@ export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
 
 # Bare digest only. The standard target selects the standard public repository automatically.
-export STANDARD_IMAGE_DIGEST="sha256:ff4207ab0f597ccb91eb94e66040b08fba1472e9f6c0b9757e0850948edd0452"
+export STANDARD_IMAGE_DIGEST="sha256:28200808eb14c8cb9aaea9b8a3f1cd6e46832e4bda6356fdd979b94971168826"
 
 # Required once per KSA/GSA pair so the in-cluster KSA can mint the OIDC bearer token
 # used by the entitlement service.
@@ -170,7 +170,7 @@ export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
 
 # Bare digest only. The deep target selects the deep public repository automatically.
-export DEEP_IMAGE_DIGEST="sha256:a6b712a2eb1dc6b998c772a9fcc1f314bf1ae5d48ac420d01237904affb7be06"
+export DEEP_IMAGE_DIGEST="sha256:dc045461a5943b24356b2989db126a01c80a513b06fc3706f3c73a4bb5b4332f"
 
 make reviewer-run-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
 
