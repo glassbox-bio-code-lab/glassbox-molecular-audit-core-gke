@@ -6,16 +6,21 @@ CHART_DIR ?= ./manifest/chart
 
 STANDARD_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
 DEEP_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
+DEPLOYER_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deployer
+UBBAGENT_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
 
-STANDARD_IMAGE_TAG ?= 1.0
-DEEP_IMAGE_TAG ?= 1.0
+STANDARD_IMAGE_TAG ?= 1.0.0
+DEEP_IMAGE_TAG ?= 1.0.0
+DEPLOYER_IMAGE_TAG ?= 1.0.0
+UBBAGENT_IMAGE_TAG ?= 1.0.0
 STANDARD_IMAGE_DIGEST ?= sha256:63c1803422f3b4dac24fb99b40b925f06062530bf187c2f2a6f5ec645be1427e
 DEEP_IMAGE_DIGEST ?= sha256:63e1a03cac561ad49d33efbe4c00af56c097cffda1e0a1273bec43225ff7f318
+DEPLOYER_IMAGE_DIGEST ?= sha256:fc182fb1c66f66112141381fd0c950f7d1e87308fc687d23b2ba089959ce1109
+UBBAGENT_IMAGE_DIGEST ?= sha256:9565b0dbcc069039f0d1d00868d8b2b7aaf2386405a74b1501661f90fbe2992e
 HELPER_IMAGE_REPO ?= alpine
 HELPER_IMAGE_TAG ?= 3.20
 HELPER_IMAGE_DIGEST ?=
-DEPLOYER_IMAGE ?= glassbox-mol-audit/deployer:1.0
-TESTER_IMAGE ?= glassbox-mol-audit/tester:1.0
+MP_SERVICE_NAME ?= services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
 
 PROJECT_ID ?=
 RUN_MODE ?= standard
@@ -36,8 +41,9 @@ RUN_ID_FILE_STANDARD ?= ./.last_manifest_run_id.standard
 RUN_ID_FILE_DEEP ?= ./.last_manifest_run_id.deep
 
 .PHONY: help \
+		deployer-build deployer-push \
+		ubbagent-build ubbagent-push \
 		review-preflight \
-		deployer-build tester-build \
 		reviewer-run-standard reviewer-run-deep \
 		deploy-manifest-infra stage-manifest-input deploy-manifest-job fetch-manifest-output \
 		deploy-manifest-infra-standard stage-manifest-input-standard deploy-manifest-job-standard fetch-manifest-output-standard \
@@ -70,11 +76,53 @@ help:
 	@echo ""
 	@echo "Preflight:"
 	@echo "  make review-preflight"
-	@echo "  make deployer-build DEPLOYER_IMAGE=<image>"
-	@echo "  make tester-build TESTER_IMAGE=<image>"
+	@echo ""
+	@echo "Auxiliary image release:"
+	@echo "  make deployer-build [DEPLOYER_IMAGE_REPO=<repo>] [DEPLOYER_IMAGE_TAG=<tag>]"
+	@echo "  make deployer-push  [DEPLOYER_IMAGE_REPO=<repo>] [DEPLOYER_IMAGE_TAG=<tag>]"
+	@echo "  make ubbagent-build [UBBAGENT_IMAGE_REPO=<repo>] [UBBAGENT_IMAGE_TAG=<tag>]"
+	@echo "  make ubbagent-push  [UBBAGENT_IMAGE_REPO=<repo>] [UBBAGENT_IMAGE_TAG=<tag>]"
 	@echo ""
 	@echo "Optional:"
 	@echo "  RUN_ID=<custom-run-id>      # otherwise reviewer_<mode>_<timestamp> is used"
+
+deployer-build:
+	@echo "Building deployer image $(DEPLOYER_IMAGE_REPO):$(DEPLOYER_IMAGE_TAG)"
+	@docker image rm -f "$(DEPLOYER_IMAGE_REPO):$(DEPLOYER_IMAGE_TAG)" >/dev/null 2>&1 || true
+	docker buildx build \
+		--platform linux/amd64 \
+		--provenance=false \
+		--sbom=false \
+		--load \
+		-f deployer/Dockerfile \
+		--build-arg MP_SERVICE_NAME="$(MP_SERVICE_NAME)" \
+		-t "$(DEPLOYER_IMAGE_REPO):$(DEPLOYER_IMAGE_TAG)" \
+		.
+
+
+deployer-push: deployer-build
+	@echo "Pushing deployer image $(DEPLOYER_IMAGE_REPO):$(DEPLOYER_IMAGE_TAG)"
+	docker push "$(DEPLOYER_IMAGE_REPO):$(DEPLOYER_IMAGE_TAG)"
+
+
+ubbagent-build:
+	@echo "Building ubbagent image $(UBBAGENT_IMAGE_REPO):$(UBBAGENT_IMAGE_TAG)"
+	@docker image rm -f "$(UBBAGENT_IMAGE_REPO):$(UBBAGENT_IMAGE_TAG)" >/dev/null 2>&1 || true
+	docker buildx build \
+		--platform linux/amd64 \
+		--provenance=false \
+		--sbom=false \
+		--load \
+		-f ../deploy/ubbagent/Dockerfile.gbx.ubb-agent \
+		--build-arg MP_SERVICE_NAME="$(MP_SERVICE_NAME)" \
+		-t "$(UBBAGENT_IMAGE_REPO):$(UBBAGENT_IMAGE_TAG)" \
+		..
+
+
+ubbagent-push: ubbagent-build
+	@echo "Pushing ubbagent image $(UBBAGENT_IMAGE_REPO):$(UBBAGENT_IMAGE_TAG)"
+	docker push "$(UBBAGENT_IMAGE_REPO):$(UBBAGENT_IMAGE_TAG)"
+
 
 review-preflight:
 	@echo "[preflight] Helm lint"
@@ -98,16 +146,12 @@ review-preflight:
 	@echo "[preflight] Required customer docs"
 	@test -f ./docs/RUNBOOK_CUSTOMER.md
 	@test -f ./docs/SUPPORT_MATRIX.md
+	@echo "[preflight] Required internal release docs"
+	@test -f ../docs/MARKETPLACE_REVIEW_CHECKLIST.md
 	@echo "[preflight] Required sample input bundle"
 	@test -f ./e2e/sample_input/test/01_sources/sources.json
 	@test -f ./e2e/sample_input/test/01_sources/portfolio_selected.csv
 	@echo "[preflight] PASS"
-
-deployer-build:
-	docker build -f deployer/Dockerfile -t "$(DEPLOYER_IMAGE)" .
-
-tester-build:
-	docker build -f apptest/tester/Dockerfile -t "$(TESTER_IMAGE)" apptest/tester
 
 deploy-manifest-infra:
 	@IMAGE_REPO_RESOLVED="$(STANDARD_IMAGE_REPO)"; \

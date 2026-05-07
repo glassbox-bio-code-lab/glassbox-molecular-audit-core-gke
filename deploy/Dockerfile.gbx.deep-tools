@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=glassbox-mol-audit:1.0
+ARG BASE_IMAGE=glassbox-mol-audit:1.0.0
 FROM ${BASE_IMAGE}
 
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
@@ -27,6 +27,7 @@ RUN conda create -y -n deep-tools --solver libmamba -c conda-forge \
       "scipy=1.14.1" \
       "scikit-learn=1.5.2" \
       "pandas=2.2.*" \
+      "openssl>=3.5.6" \
       "ambertools=23.3" \
       openbabel \
       vina \
@@ -63,6 +64,7 @@ RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache
       "certifi>=2024.8.30" \
       "filelock>=3.20.3" \
       "idna>=3.7" \
+      "cryptography>=46.0.7,<47.0.0" \
       "requests>=2.32.4" \
       "urllib3>=2.6.3"
 
@@ -71,6 +73,7 @@ RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache
 # Keep base interpreter compatible with deep modules that are executed via /usr/local/bin/python3.
 # This avoids Python ABI mismatches from importing py311 wheels in a py312 interpreter.
 RUN conda install -y -n base --solver libmamba -c conda-forge \
+      "openssl>=3.5.6" \
       "ambertools=23.3" \
       openbabel
 RUN /opt/conda/bin/python -m pip install --no-cache-dir --upgrade \
@@ -81,6 +84,7 @@ RUN /opt/conda/bin/python -m pip install --no-cache-dir --upgrade \
       "certifi>=2024.8.30" \
       "filelock>=3.20.3" \
       "idna>=3.7" \
+      "cryptography>=46.0.7,<47.0.0" \
       "requests>=2.32.4" \
       "urllib3>=2.6.3" && \
     rm -f /opt/conda/lib/python*/ensurepip/_bundled/pip-*.whl \
@@ -112,6 +116,11 @@ RUN if [[ "${INSTALL_CUDAQ}" == "1" ]]; then \
         /opt/conda/bin/python -m pip install --no-cache-dir cudaq pyscf \
       ) || echo "WARNING: CUDA-Q install failed in base interpreter; continuing"; \
     fi
+
+COPY deploy/scripts/validate_crypto_security.py /tmp/validate_crypto_security.py
+RUN conda run --no-capture-output -n deep-tools python /tmp/validate_crypto_security.py && \
+    /opt/conda/bin/python /tmp/validate_crypto_security.py && \
+    rm -f /tmp/validate_crypto_security.py
 
 
 RUN cd /tmp && \

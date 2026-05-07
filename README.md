@@ -39,7 +39,11 @@ This directory is the public, customer-facing repository root for Google Cloud M
 
 Customer runtime uses identity-only entitlement checks. The Kubernetes Job authenticates to the hosted entitlement service with Workload Identity, and entitlement is resolved from the customer GSA principal. Customer deployments do not require a customer-managed entitlement token or any provisioning credential.
 
-Run all reviewer/customer commands from this repository root.
+Run all reviewer/customer commands from this directory:
+
+```bash
+cd github
+```
 
 ## Scope
 
@@ -56,10 +60,12 @@ Validate the bundle first:
 make review-preflight
 ```
 
-Published runtime repositories:
+Published Marketplace repositories:
 
 - Standard: `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit`
 - Deep: `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools`
+- Deployer: `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deployer`
+- UBB agent: `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent`
 
 Primary reviewer docs:
 
@@ -199,15 +205,23 @@ Customer runtime note:
 
 - Standard runtime image:
   - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit`
+  - current digest: `sha256:63c1803422f3b4dac24fb99b40b925f06062530bf187c2f2a6f5ec645be1427e`
 - Deep runtime image:
   - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools`
+  - current digest: `sha256:63e1a03cac561ad49d33efbe4c00af56c097cffda1e0a1273bec43225ff7f318`
+- Deployer image:
+  - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deployer`
+  - current digest: `sha256:fc182fb1c66f66112141381fd0c950f7d1e87308fc687d23b2ba089959ce1109`
+- UBB agent image:
+  - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent`
+  - current digest: `sha256:9565b0dbcc069039f0d1d00868d8b2b7aaf2386405a74b1501661f90fbe2992e`
 - Entitlement plan:
   - `gbx_target_diligence_core`
 - Usage metrics:
   - `standard_audit_run`
   - `deep_audit_run`
 
-The standard wrapper targets always use `STANDARD_IMAGE_*`. The deep wrapper targets always use `DEEP_IMAGE_*`. Digests must be bare `sha256:...` values, not full image references.
+The standard wrapper targets always use `STANDARD_IMAGE_*`. The deep wrapper targets always use `DEEP_IMAGE_*`. Auxiliary Marketplace images are tracked with `DEPLOYER_IMAGE_*` and `UBBAGENT_IMAGE_*`. Digests must be bare `sha256:...` values, not full image references.
 
 Sample customer input used by the reviewer pipeline is staged from:
 
