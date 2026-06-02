@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=glassbox-mol-audit:1.0.0
+ARG BASE_IMAGE=glassbox-mol-audit:1.0.4
 FROM ${BASE_IMAGE}
 
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
@@ -7,6 +7,14 @@ LABEL com.googleapis.cloudmarketplace.product.service.name=${MP_SERVICE_NAME}
 USER root
 SHELL ["/bin/bash", "-lc"]
 ARG INSTALL_CUDAQ=1
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libgnutls30 && \
+    gnutls_version="$(dpkg-query -W -f='${Version}' libgnutls30)" && \
+    dpkg --compare-versions "$gnutls_version" ge "3.7.9-2+deb12u7" && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV CONDA_DIR=/opt/conda \
     PYTHONUNBUFFERED=1 \

@@ -40,7 +40,7 @@ RUN curl -fsSLo helm-src.tar.gz "https://github.com/helm/helm/archive/refs/tags/
     && /usr/local/go/bin/go mod download \
     && CGO_ENABLED=0 /usr/local/go/bin/go build -trimpath -o /out/helm ./cmd/helm
 
-FROM ubuntu:22.04
+FROM debian:12-slim
 ARG HELM_VERSION
 ARG KUBECTL_VERSION
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
@@ -55,11 +55,17 @@ RUN apt-get update \
       curl \
       gettext \
       jq \
+      libgnutls30 \
+      openssl \
       python3 \
       python3-pip \
       python-is-python3 \
-    && python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" \
-    && python3 -m pip install --no-cache-dir --upgrade \
+    && gnutls_version="$(dpkg-query -W -f='${Version}' libgnutls30)" \
+    && dpkg --compare-versions "$gnutls_version" ge "3.7.9-2+deb12u7" \
+    && openssl_version="$(dpkg-query -W -f='${Version}' openssl)" \
+    && dpkg --compare-versions "$openssl_version" ge "3.0.19-1~deb12u2" \
+    && python3 -m pip install --break-system-packages --no-cache-dir --upgrade "pip>=24.0" \
+    && python3 -m pip install --break-system-packages --no-cache-dir --upgrade \
       "pyOpenSSL>=26,<27" \
       "pyyaml>=6,<7" \
       "cryptography>=46.0.7,<47" \

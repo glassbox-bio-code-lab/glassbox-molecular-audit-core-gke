@@ -44,5 +44,5 @@ dimorphite_dl
 ProDy
 h5py
 tables
-cryptography
+cryptography>=46.0.7,<47.0.0
 rdkit

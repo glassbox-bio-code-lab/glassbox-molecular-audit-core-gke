@@ -29,7 +29,10 @@ RUN apt-get update && \
     bash \
     curl \
     bzip2 \
-    openbabel && \
+    openbabel \
+    libgnutls30 && \
+    gnutls_version="$(dpkg-query -W -f='${Version}' libgnutls30)" && \
+    dpkg --compare-versions "$gnutls_version" ge "3.7.9-2+deb12u7" && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
@@ -93,7 +96,7 @@ COPY deploy/requirements-pipeline.txt /requirements-pipeline.txt
 # Pre-install cryptography/cffi from wheels before the large requirements install.
 # This reduces pip uninstall/reinstall churn, which has been observed to intermittently segfault
 # in some builder environments.
-RUN pip install --no-cache-dir --upgrade --only-binary=:all: cryptography cffi
+RUN pip install --no-cache-dir --upgrade --only-binary=:all: "cryptography>=46.0.7,<47.0.0" cffi
 RUN pip install --no-cache-dir -r /requirements-pipeline.txt
 RUN pip install --no-cache-dir --upgrade \
     pip \
@@ -103,10 +106,14 @@ RUN pip install --no-cache-dir --upgrade \
     "certifi>=2024.8.30" \
     "filelock>=3.20.3" \
     "idna>=3.7" \
+    "cryptography>=46.0.7,<47.0.0" \
     "requests>=2.32.4" \
     "urllib3>=2.6.3"
 RUN rm -f /opt/conda/lib/python*/ensurepip/_bundled/pip-*.whl \
           /opt/conda/lib/python*/ensurepip/_bundled/setuptools-*.whl
+COPY deploy/scripts/validate_crypto_security.py /tmp/validate_crypto_security.py
+RUN python3 /tmp/validate_crypto_security.py && \
+    rm -f /tmp/validate_crypto_security.py
 RUN pip install --no-cache-dir google-cloud-storage google-auth
 RUN pip install --no-cache-dir Jinja2
 

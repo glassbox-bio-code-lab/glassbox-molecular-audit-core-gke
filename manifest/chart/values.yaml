@@ -3,19 +3,19 @@ fullnameOverride: ""
 
 image:
   repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
-  tag: "1.0.0"
+  tag: "1.0.4"
   pullPolicy: IfNotPresent
-  digest: ""
+  digest: "sha256:40e77a78342ea3e38efa734c1c1adb3c395ccd156963842a1084ed23d26c52ef"
   standard:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit
-    tag: "1.0.0"
+    tag: "1.0.4"
     pullPolicy: IfNotPresent
-    digest: ""
+    digest: "sha256:40e77a78342ea3e38efa734c1c1adb3c395ccd156963842a1084ed23d26c52ef"
   deep:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
-    tag: "1.0.0"
+    tag: "1.0.4"
     pullPolicy: IfNotPresent
-    digest: ""
+    digest: "sha256:e171256a537a9a932f62839a77210f6794f61ab723198e02780a795192438aa2"
 
 config:
   projectId: mol_audit_demo
@@ -47,9 +47,9 @@ ubbagent:
   enabled: false
   image:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
-    tag: "1.0.0"
+    tag: "1.0.4"
     pullPolicy: IfNotPresent
-    digest: ""
+    digest: "sha256:cf0087872698b0dd07b44b71c9f84c35f5446d1b83592e47b9717f7375bcc38e"
   localPort: "4567"
   # Legacy single-metric override. Leave empty for mode-aware metric selection.
   metricName: ""
@@ -100,9 +100,9 @@ apptest:
   enabled: false
   image:
     repository: us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
-    tag: "1.0.0"
+    tag: "1.0.4"
     pullPolicy: Always
-    digest: ""
+    digest: "sha256:4dcdb185a51b3510cb4d323b038bfac6a275c33c894d51ea0ea68b9e78b00275"
   resources:
     requests:
       cpu: "100m"
