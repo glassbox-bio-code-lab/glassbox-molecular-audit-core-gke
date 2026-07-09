@@ -12,7 +12,7 @@ RUN curl -fsSLo kubernetes-src.tar.gz "https://github.com/kubernetes/kubernetes/
     && PATH=/usr/local/go/bin:$PATH make kubectl KUBE_VERBOSE=0 \
     && install -D _output/local/go/bin/kubectl /out/kubectl
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # Marketplace-required OCI annotation (set via build arg for CI/CD).
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
@@ -27,8 +27,11 @@ RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y --no-install
     curl \
     tar \
     openssl \
+    libgnutls30 \
     && openssl_version="$(dpkg-query -W -f='${Version}' openssl)" \
-    && dpkg --compare-versions "$openssl_version" ge "3.5.5-1~deb13u2" \
+    && dpkg --compare-versions "$openssl_version" ge "3.0.19-1~deb12u2" \
+    && gnutls_version="$(dpkg-query -W -f='${Version}' libgnutls30)" \
+    && dpkg --compare-versions "$gnutls_version" ge "3.7.9-2+deb12u7" \
     && openssl version \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*

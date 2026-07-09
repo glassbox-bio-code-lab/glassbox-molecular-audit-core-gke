@@ -9,14 +9,14 @@ DEEP_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-
 DEPLOYER_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deployer
 UBBAGENT_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
 
-STANDARD_IMAGE_TAG ?= 1.0.0
-DEEP_IMAGE_TAG ?= 1.0.0
-DEPLOYER_IMAGE_TAG ?= 1.0.0
-UBBAGENT_IMAGE_TAG ?= 1.0.0
-STANDARD_IMAGE_DIGEST ?= sha256:63c1803422f3b4dac24fb99b40b925f06062530bf187c2f2a6f5ec645be1427e
-DEEP_IMAGE_DIGEST ?= sha256:63e1a03cac561ad49d33efbe4c00af56c097cffda1e0a1273bec43225ff7f318
-DEPLOYER_IMAGE_DIGEST ?= sha256:fc182fb1c66f66112141381fd0c950f7d1e87308fc687d23b2ba089959ce1109
-UBBAGENT_IMAGE_DIGEST ?= sha256:9565b0dbcc069039f0d1d00868d8b2b7aaf2386405a74b1501661f90fbe2992e
+STANDARD_IMAGE_TAG ?= 1.0.4
+DEEP_IMAGE_TAG ?= 1.0.4
+DEPLOYER_IMAGE_TAG ?= 1.0.4
+UBBAGENT_IMAGE_TAG ?= 1.0.4
+STANDARD_IMAGE_DIGEST ?= sha256:40e77a78342ea3e38efa734c1c1adb3c395ccd156963842a1084ed23d26c52ef
+DEEP_IMAGE_DIGEST ?= sha256:e171256a537a9a932f62839a77210f6794f61ab723198e02780a795192438aa2
+DEPLOYER_IMAGE_DIGEST ?= sha256:7ffc94f692af8d4fda2c11cdcff3198199fcea5e2e15692bff8111f40bf069db
+UBBAGENT_IMAGE_DIGEST ?= sha256:cf0087872698b0dd07b44b71c9f84c35f5446d1b83592e47b9717f7375bcc38e
 HELPER_IMAGE_REPO ?= alpine
 HELPER_IMAGE_TAG ?= 3.20
 HELPER_IMAGE_DIGEST ?=
@@ -91,6 +91,7 @@ deployer-build:
 	@docker image rm -f "$(DEPLOYER_IMAGE_REPO):$(DEPLOYER_IMAGE_TAG)" >/dev/null 2>&1 || true
 	docker buildx build \
 		--platform linux/amd64 \
+		--pull \
 		--provenance=false \
 		--sbom=false \
 		--load \
@@ -110,13 +111,14 @@ ubbagent-build:
 	@docker image rm -f "$(UBBAGENT_IMAGE_REPO):$(UBBAGENT_IMAGE_TAG)" >/dev/null 2>&1 || true
 	docker buildx build \
 		--platform linux/amd64 \
+		--pull \
 		--provenance=false \
 		--sbom=false \
 		--load \
-		-f ../deploy/ubbagent/Dockerfile.gbx.ubb-agent \
+		-f deploy/Dockerfile.gbx.ubb-agent \
 		--build-arg MP_SERVICE_NAME="$(MP_SERVICE_NAME)" \
 		-t "$(UBBAGENT_IMAGE_REPO):$(UBBAGENT_IMAGE_TAG)" \
-		..
+		.
 
 
 ubbagent-push: ubbagent-build
@@ -146,8 +148,9 @@ review-preflight:
 	@echo "[preflight] Required customer docs"
 	@test -f ./docs/RUNBOOK_CUSTOMER.md
 	@test -f ./docs/SUPPORT_MATRIX.md
-	@echo "[preflight] Required internal release docs"
-	@test -f ../docs/MARKETPLACE_REVIEW_CHECKLIST.md
+	@echo "[preflight] Required release docs"
+	@test -f ./manifest/README.md
+	@test -f ./docs/BILLING_AGENT_VALIDATION.md
 	@echo "[preflight] Required sample input bundle"
 	@test -f ./e2e/sample_input/test/01_sources/sources.json
 	@test -f ./e2e/sample_input/test/01_sources/portfolio_selected.csv
