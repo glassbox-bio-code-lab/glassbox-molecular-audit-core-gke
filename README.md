@@ -132,7 +132,7 @@ export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
 
 # Bare digest only. The standard target selects the standard public repository automatically.
-export STANDARD_IMAGE_DIGEST="sha256:63c1803422f3b4dac24fb99b40b925f06062530bf187c2f2a6f5ec645be1427e"
+export STANDARD_IMAGE_DIGEST="sha256:45fb9b894090a321592c0344722535ae8ed2d30ee89c4b694335ccc921556283"
 
 # Required once per KSA/GSA pair so the in-cluster KSA can mint the OIDC bearer token
 # used by the entitlement service.
@@ -176,7 +176,7 @@ export PROJECT_ID="test"
 export CATEGORY_ID="SMALL_MOLECULE__STRUCTURE_PRESENT__NO_MD_TRAJ"
 
 # Bare digest only. The deep target selects the deep public repository automatically.
-export DEEP_IMAGE_DIGEST="sha256:63e1a03cac561ad49d33efbe4c00af56c097cffda1e0a1273bec43225ff7f318"
+export DEEP_IMAGE_DIGEST="sha256:ac2a57a6d5b674c625bc73998a0017fa2ac6d7e10f23efbb8c904fbfccb20487"
 
 make reviewer-run-deep PROJECT_ID="${PROJECT_ID}" CATEGORY_ID="${CATEGORY_ID}" DEEP_IMAGE_DIGEST="${DEEP_IMAGE_DIGEST}" WORKLOAD_IDENTITY_GSA="${WORKLOAD_IDENTITY_GSA}"
 
@@ -205,23 +205,26 @@ Customer runtime note:
 
 - Standard runtime image:
   - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit`
-  - current digest: `sha256:63c1803422f3b4dac24fb99b40b925f06062530bf187c2f2a6f5ec645be1427e`
+  - current digest: `sha256:45fb9b894090a321592c0344722535ae8ed2d30ee89c4b694335ccc921556283`
 - Deep runtime image:
   - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools`
-  - current digest: `sha256:63e1a03cac561ad49d33efbe4c00af56c097cffda1e0a1273bec43225ff7f318`
+  - current digest: `sha256:ac2a57a6d5b674c625bc73998a0017fa2ac6d7e10f23efbb8c904fbfccb20487`
 - Deployer image:
   - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deployer`
-  - current digest: `sha256:fc182fb1c66f66112141381fd0c950f7d1e87308fc687d23b2ba089959ce1109`
+  - current digest: `sha256:a5d26703ef69579f9728eb0fb82104627e93628b111b50ae9353868b2557eb3f`
 - UBB agent image:
   - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent`
-  - current digest: `sha256:9565b0dbcc069039f0d1d00868d8b2b7aaf2386405a74b1501661f90fbe2992e`
+  - current digest: `sha256:f04b589083f4ccfea685ffea420c8caa0a20d9cc7aad4ec0f0e72e27ceef9227`
+- Tester image:
+  - `us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester`
+  - current digest: `sha256:8cd121338312da467d020bb3e7f3d65bb316e9483859554c6da3d35dcf704aba`
 - Entitlement plan:
   - `gbx_target_diligence_core`
 - Usage metrics:
   - `standard_audit_run`
   - `deep_audit_run`
 
-The standard wrapper targets always use `STANDARD_IMAGE_*`. The deep wrapper targets always use `DEEP_IMAGE_*`. Auxiliary Marketplace images are tracked with `DEPLOYER_IMAGE_*` and `UBBAGENT_IMAGE_*`. Digests must be bare `sha256:...` values, not full image references.
+The standard wrapper targets always use `STANDARD_IMAGE_*`. The deep wrapper targets always use `DEEP_IMAGE_*`. Auxiliary Marketplace images are tracked with `DEPLOYER_IMAGE_*`, `UBBAGENT_IMAGE_*`, and `TESTER_IMAGE_*`. Digests must be bare `sha256:...` values, not full image references.
 
 Sample customer input used by the reviewer pipeline is staged from:
 

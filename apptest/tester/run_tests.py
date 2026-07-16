@@ -1,15 +1,30 @@
 import os
 import subprocess
 import sys
+from collections import deque
 from pathlib import Path
 
 import yaml
 
 
-def _run_bash(script: str, env: dict) -> int:
+def _run_bash(script: str, env: dict) -> tuple[int, list[str]]:
     # The test scripts already include their own strict-mode setup.
-    p = subprocess.run(["bash", "-lc", script], env=env)
-    return int(p.returncode)
+    tail: deque[str] = deque(maxlen=200)
+    proc = subprocess.Popen(
+        ["bash", "-lc", script],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    assert proc.stdout is not None
+    for raw_line in proc.stdout:
+        line = raw_line.rstrip("\n")
+        print(line, flush=True)
+        tail.append(line)
+    returncode = int(proc.wait())
+    return returncode, list(tail)
 
 
 def main() -> int:
@@ -41,13 +56,26 @@ def main() -> int:
                 continue
 
             print(f"--- ACTION {idx} START: {name} ---", flush=True)
-            rc = _run_bash(str(script), env)
+            rc, tail = _run_bash(str(script), env)
             if rc != 0:
                 print(
                     f"FAIL[{idx}]: {name} (exit={rc}, spec={spec_path.name})",
                     file=sys.stderr,
                     flush=True,
                 )
+                if tail:
+                    print(
+                        f"--- ACTION {idx} FAILURE TAIL START: {name} ---",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    for line in tail:
+                        print(line, file=sys.stderr, flush=True)
+                    print(
+                        f"--- ACTION {idx} FAILURE TAIL END: {name} ---",
+                        file=sys.stderr,
+                        flush=True,
+                    )
                 return rc
 
             print(f"PASS[{idx}]: {name}", flush=True)

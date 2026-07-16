@@ -62,6 +62,8 @@ actions:
       dump_job_debug() {
         echo "=== job summary (${job_name}) ==="
         kubectl -n "${NAMESPACE}" get job "${job_name}" -o wide || true
+        echo "=== job conditions (${job_name}) ==="
+        kubectl -n "${NAMESPACE}" get job "${job_name}" -o jsonpath='{range .status.conditions[*]}{.type}{": status="}{.status}{", reason="}{.reason}{", message="}{.message}{"\n"}{end}' || true
         echo "=== job yaml (${job_name}) ==="
         kubectl -n "${NAMESPACE}" get job "${job_name}" -o yaml || true
         echo "=== configmap yaml (${APP_CONFIGMAP}) ==="
@@ -86,6 +88,36 @@ actions:
           done
         done
         dump_namespace_events
+      }
+      wait_for_job_terminal_state() {
+        timeout_seconds="${1:-3600}"
+        poll_seconds=10
+        elapsed=0
+        while [ "${elapsed}" -lt "${timeout_seconds}" ]; do
+          complete="$(kubectl -n "${NAMESPACE}" get job "${job_name}" -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' 2>/dev/null || true)"
+          failed="$(kubectl -n "${NAMESPACE}" get job "${job_name}" -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null || true)"
+          if [ "${complete}" = "True" ]; then
+            echo "Verification job completed successfully"
+            return 0
+          fi
+          if [ "${failed}" = "True" ]; then
+            echo "Verification job entered Failed state before timeout"
+            dump_job_debug
+            return 1
+          fi
+          if [ $((elapsed % 60)) -eq 0 ]; then
+            active="$(kubectl -n "${NAMESPACE}" get job "${job_name}" -o jsonpath='{.status.active}' 2>/dev/null || true)"
+            succeeded="$(kubectl -n "${NAMESPACE}" get job "${job_name}" -o jsonpath='{.status.succeeded}' 2>/dev/null || true)"
+            failed_count="$(kubectl -n "${NAMESPACE}" get job "${job_name}" -o jsonpath='{.status.failed}' 2>/dev/null || true)"
+            echo "Waiting for verification job: elapsed=${elapsed}s active=${active:-0} succeeded=${succeeded:-0} failed=${failed_count:-0}"
+          fi
+          sleep "${poll_seconds}"
+          elapsed=$((elapsed + poll_seconds))
+        done
+
+        echo "Verification job timed out waiting for completion"
+        dump_job_debug
+        return 1
       }
       kubectl -n "${NAMESPACE}" delete job "${job_name}" --ignore-not-found >/dev/null 2>&1 || true
       cat <<YAML | kubectl -n "${NAMESPACE}" apply -f -
@@ -147,9 +179,7 @@ actions:
               persistentVolumeClaim:
                 claimName: ${APP_PVC_NAME}
       YAML
-      if ! kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job_name}" --timeout=3600s; then
-        echo "Verification job failed or timed out before completion"
-        dump_job_debug
+      if ! wait_for_job_terminal_state 3600; then
         exit 1
       fi
 

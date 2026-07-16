@@ -8,15 +8,18 @@ STANDARD_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecu
 DEEP_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deep-tools
 DEPLOYER_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/deployer
 UBBAGENT_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/ubbagent
+TESTER_IMAGE_REPO ?= us-docker.pkg.dev/glassbox-bio-public/glassbox-bio-molecular-audit/glassbox-mol-audit/tester
 
-STANDARD_IMAGE_TAG ?= 1.0.0
-DEEP_IMAGE_TAG ?= 1.0.0
-DEPLOYER_IMAGE_TAG ?= 1.0.0
-UBBAGENT_IMAGE_TAG ?= 1.0.0
-STANDARD_IMAGE_DIGEST ?= sha256:63c1803422f3b4dac24fb99b40b925f06062530bf187c2f2a6f5ec645be1427e
-DEEP_IMAGE_DIGEST ?= sha256:63e1a03cac561ad49d33efbe4c00af56c097cffda1e0a1273bec43225ff7f318
-DEPLOYER_IMAGE_DIGEST ?= sha256:fc182fb1c66f66112141381fd0c950f7d1e87308fc687d23b2ba089959ce1109
-UBBAGENT_IMAGE_DIGEST ?= sha256:9565b0dbcc069039f0d1d00868d8b2b7aaf2386405a74b1501661f90fbe2992e
+STANDARD_IMAGE_TAG ?= 1.0.5
+DEEP_IMAGE_TAG ?= 1.0.5
+DEPLOYER_IMAGE_TAG ?= 1.0.5
+UBBAGENT_IMAGE_TAG ?= 1.0.5
+TESTER_IMAGE_TAG ?= 1.0.5
+STANDARD_IMAGE_DIGEST ?= sha256:45fb9b894090a321592c0344722535ae8ed2d30ee89c4b694335ccc921556283
+DEEP_IMAGE_DIGEST ?= sha256:ac2a57a6d5b674c625bc73998a0017fa2ac6d7e10f23efbb8c904fbfccb20487
+DEPLOYER_IMAGE_DIGEST ?= sha256:a5d26703ef69579f9728eb0fb82104627e93628b111b50ae9353868b2557eb3f
+UBBAGENT_IMAGE_DIGEST ?= sha256:f04b589083f4ccfea685ffea420c8caa0a20d9cc7aad4ec0f0e72e27ceef9227
+TESTER_IMAGE_DIGEST ?= sha256:8cd121338312da467d020bb3e7f3d65bb316e9483859554c6da3d35dcf704aba
 HELPER_IMAGE_REPO ?= alpine
 HELPER_IMAGE_TAG ?= 3.20
 HELPER_IMAGE_DIGEST ?=
@@ -146,8 +149,12 @@ review-preflight:
 	@echo "[preflight] Required customer docs"
 	@test -f ./docs/RUNBOOK_CUSTOMER.md
 	@test -f ./docs/SUPPORT_MATRIX.md
-	@echo "[preflight] Required internal release docs"
-	@test -f ../docs/MARKETPLACE_REVIEW_CHECKLIST.md
+	@if [ -f ../docs/MARKETPLACE_PREDEPLOY_CHECKLIST.md ]; then \
+		echo "[preflight] Required internal release docs"; \
+		test -f ../docs/MARKETPLACE_PREDEPLOY_CHECKLIST.md; \
+	else \
+		echo "[preflight] Internal release docs not included in public export (skipped)"; \
+	fi
 	@echo "[preflight] Required sample input bundle"
 	@test -f ./e2e/sample_input/test/01_sources/sources.json
 	@test -f ./e2e/sample_input/test/01_sources/portfolio_selected.csv

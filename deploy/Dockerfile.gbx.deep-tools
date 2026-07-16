@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=glassbox-mol-audit:1.0.0
+ARG BASE_IMAGE=glassbox-mol-audit:1.0.5
 FROM ${BASE_IMAGE}
 
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
@@ -7,6 +7,14 @@ LABEL com.googleapis.cloudmarketplace.product.service.name=${MP_SERVICE_NAME}
 USER root
 SHELL ["/bin/bash", "-lc"]
 ARG INSTALL_CUDAQ=1
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libgnutls30 && \
+    gnutls_version="$(dpkg-query -W -f='${Version}' libgnutls30)" && \
+    dpkg --compare-versions "$gnutls_version" ge "3.7.9-2+deb12u7" && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV CONDA_DIR=/opt/conda \
     PYTHONUNBUFFERED=1 \
@@ -27,7 +35,7 @@ RUN conda create -y -n deep-tools --solver libmamba -c conda-forge \
       "scipy=1.14.1" \
       "scikit-learn=1.5.2" \
       "pandas=2.2.*" \
-      "openssl>=3.5.6" \
+      "openssl>=3.5.7" \
       "ambertools=23.3" \
       openbabel \
       vina \
@@ -64,7 +72,6 @@ RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache
       "certifi>=2024.8.30" \
       "filelock>=3.20.3" \
       "idna>=3.7" \
-      "cryptography>=46.0.7,<47.0.0" \
       "requests>=2.32.4" \
       "urllib3>=2.6.3"
 
@@ -73,7 +80,7 @@ RUN conda run --no-capture-output -n deep-tools python -m pip install --no-cache
 # Keep base interpreter compatible with deep modules that are executed via /usr/local/bin/python3.
 # This avoids Python ABI mismatches from importing py311 wheels in a py312 interpreter.
 RUN conda install -y -n base --solver libmamba -c conda-forge \
-      "openssl>=3.5.6" \
+      "openssl>=3.5.7" \
       "ambertools=23.3" \
       openbabel
 RUN /opt/conda/bin/python -m pip install --no-cache-dir --upgrade \
@@ -84,7 +91,6 @@ RUN /opt/conda/bin/python -m pip install --no-cache-dir --upgrade \
       "certifi>=2024.8.30" \
       "filelock>=3.20.3" \
       "idna>=3.7" \
-      "cryptography>=46.0.7,<47.0.0" \
       "requests>=2.32.4" \
       "urllib3>=2.6.3" && \
     rm -f /opt/conda/lib/python*/ensurepip/_bundled/pip-*.whl \
@@ -116,6 +122,14 @@ RUN if [[ "${INSTALL_CUDAQ}" == "1" ]]; then \
         /opt/conda/bin/python -m pip install --no-cache-dir cudaq pyscf \
       ) || echo "WARNING: CUDA-Q install failed in base interpreter; continuing"; \
     fi
+
+# Pip dependencies can replace conda's cryptography package with a wheel that
+# bundles OpenSSL. Restore conda-linked builds in both runtime environments.
+RUN conda install -y -n deep-tools --solver libmamba -c conda-forge --force-reinstall \
+      "openssl>=3.5.7" "cryptography>=48.0.1,<49.0.0" cffi && \
+    conda install -y -n base --solver libmamba -c conda-forge --force-reinstall \
+      "openssl>=3.5.7" "cryptography>=48.0.1,<49.0.0" cffi && \
+    conda clean -afy
 
 COPY deploy/scripts/validate_crypto_security.py /tmp/validate_crypto_security.py
 RUN conda run --no-capture-output -n deep-tools python /tmp/validate_crypto_security.py && \

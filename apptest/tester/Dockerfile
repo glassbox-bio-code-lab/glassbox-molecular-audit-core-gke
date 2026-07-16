@@ -1,5 +1,5 @@
-# Go 1.25.9 includes the fix for CVE-2026-27143 in the toolchain used to build kubectl.
-ARG GOLANG_BUILD_IMAGE=golang:1.25.9
+# Go 1.25.12 includes the current stdlib fixes in the toolchain used to build kubectl.
+ARG GOLANG_BUILD_IMAGE=golang:1.25.12
 ARG KUBECTL_VERSION=v1.34.3
 
 FROM ${GOLANG_BUILD_IMAGE} AS kubectl-builder
@@ -7,12 +7,16 @@ ARG KUBECTL_VERSION
 WORKDIR /src
 RUN curl -fsSLo kubernetes-src.tar.gz "https://github.com/kubernetes/kubernetes/archive/refs/tags/${KUBECTL_VERSION}.tar.gz" \
     && tar -xzf kubernetes-src.tar.gz --strip-components=1 \
-    && /usr/local/go/bin/go mod edit -require=golang.org/x/net@v0.38.0 -require=golang.org/x/oauth2@v0.27.0 \
+    && /usr/local/go/bin/go mod edit \
+      -require=github.com/moby/spdystream@v0.5.1 \
+      -require=golang.org/x/crypto@v0.52.0 \
+      -require=golang.org/x/net@v0.54.0 \
+      -require=golang.org/x/oauth2@v0.34.0 \
     && /usr/local/go/bin/go work vendor \
     && PATH=/usr/local/go/bin:$PATH make kubectl KUBE_VERBOSE=0 \
     && install -D _output/local/go/bin/kubectl /out/kubectl
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # Marketplace-required OCI annotation (set via build arg for CI/CD).
 ARG MP_SERVICE_NAME=services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog
@@ -27,8 +31,11 @@ RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y --no-install
     curl \
     tar \
     openssl \
+    libgnutls30 \
     && openssl_version="$(dpkg-query -W -f='${Version}' openssl)" \
-    && dpkg --compare-versions "$openssl_version" ge "3.5.5-1~deb13u2" \
+    && dpkg --compare-versions "$openssl_version" ge "3.0.20-1~deb12u2" \
+    && gnutls_version="$(dpkg-query -W -f='${Version}' libgnutls30)" \
+    && dpkg --compare-versions "$gnutls_version" ge "3.7.9-2+deb12u7" \
     && openssl version \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*

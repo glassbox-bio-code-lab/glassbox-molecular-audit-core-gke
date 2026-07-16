@@ -2,10 +2,10 @@ x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
 
-  publishedVersion: "1.0.0"
+  publishedVersion: "1.0.5"
   publishedVersionMetadata:
     releaseNote: >-
-      Rebuilds Marketplace runtime and deployer images to address security findings.
+      Rebuilds all Marketplace images for the 1.0.5 Target Diligence Core security remediation.
     releaseTypes:
       - BugFix
     recommended: true

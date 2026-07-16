@@ -1,6 +1,6 @@
 services:
   glassbox-mol-audit-runner:
-    image: ${GBX_RUNNER_IMAGE:-glassbox-mol-audit:1.0.0}
+    image: ${GBX_RUNNER_IMAGE:-glassbox-mol-audit:1.0.5}
     build:
       context: ..
       dockerfile: ${GBX_RUNNER_DOCKERFILE:-deploy/Dockerfile.gbx.local}
@@ -11,7 +11,8 @@ services:
         MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog}
         # Optional CUDA-Q install path for GPU Dockerfile (defaults off to keep build stable).
     env_file:
-      - ./.env.gbx.local
+      - path: ./.env.gbx.local
+        required: false
     environment:
       HOME: /data/output/_runtime_home
       TMPDIR: /data/output/_runtime_tmp
@@ -38,16 +39,17 @@ services:
   # Use this with: docker compose --profile deep-tools ...
   glassbox-mol-audit-deep-tools:
     profiles: ["deep-tools"]
-    image: ${GBX_DEEP_TOOLS_IMAGE:-glassbox-mol-audit/deep-tools:1.0.0}
+    image: ${GBX_DEEP_TOOLS_IMAGE:-glassbox-mol-audit/deep-tools:1.0.5}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.gbx.deep-tools
       args:
-        BASE_IMAGE: ${GBX_DEEP_BASE_IMAGE:-glassbox-mol-audit:1.0.0}
+        BASE_IMAGE: ${GBX_DEEP_BASE_IMAGE:-glassbox-mol-audit:1.0.5}
         INSTALL_CUDAQ: ${GBX_DEEP_INSTALL_CUDAQ:-1}
         MP_SERVICE_NAME: ${MP_SERVICE_NAME:-services/molecular-audit-core.endpoints.glassbox-bio-public.cloud.goog}
     env_file:
-      - ./.env.gbx.local
+      - path: ./.env.gbx.local
+        required: false
     environment:
       HOME: /data/output/_runtime_home
       TMPDIR: /data/output/_runtime_tmp
