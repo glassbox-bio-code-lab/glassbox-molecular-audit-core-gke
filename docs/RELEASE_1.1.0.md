@@ -1,6 +1,6 @@
 # Release 1.1.0 image manifest
 
-Status: published immutably to `glassbox-bio-public` and independently verified by digest on 2026-08-26.
+Status: the release images are published to `glassbox-bio-public`, match the digests below, and the deployer passed the official Marketplace package verifier on 2026-08-26. Marketplace Full Preview and the customer-billed Standard scientific workload remain release gates; Deep also requires a GPU-capable validation cluster.
 
 Use this deployer tag for the Google Cloud Marketplace release:
 
