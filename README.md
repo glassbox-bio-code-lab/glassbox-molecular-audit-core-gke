@@ -10,6 +10,8 @@
 
 # Glassbox Bio Target Diligence Core
 
+The exact 1.1.0 production image names and digests are recorded in [docs/RELEASE_1.1.0.md](docs/RELEASE_1.1.0.md).
+
 Google Cloud Marketplace Deployment Bundle (Helm chart + schema + examples)
 
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue)
